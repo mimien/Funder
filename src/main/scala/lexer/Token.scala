@@ -90,6 +90,10 @@ case class FUN() extends Token
 
 case class IF() extends Token
 
+case class WHILE() extends Token
+
+case class DO() extends Token
+
 case class ELSE() extends Token
 
 case class AND() extends Token
@@ -114,7 +118,7 @@ case class ORANGE() extends Token
 
 case class MAIN() extends Token
 
-case class CREATE_CIRCLE() extends Token
+case class CREATE_OVAL() extends Token
 
 case class CREATE_RECTANGLE() extends Token
 
@@ -123,6 +127,8 @@ case class CREATE_ARC() extends Token
 case class CREATE_LINE() extends Token
 
 case class MOVE_X() extends Token
+
+case class MOVE_Y() extends Token
 
 case class ROTATE_FIGURE() extends Token
 

@@ -55,39 +55,116 @@ object LexicalAnalysis extends RegexParsers {
     }
   }
 
-  def assign: Parser[ASSIGN] = positioned { "=" ^^ (_ => ASSIGN()) }
+  def int: Parser[INT] = positioned { "Int" ^^ (_ => INT()) }
 
-  def colon: Parser[COLON] = positioned { ":" ^^ (_ => COLON()) }
+  def float: Parser[FLOAT] = positioned { "Float" ^^ (_ => FLOAT()) }
 
-  def comma: Parser[COMMA] = positioned { "," ^^ (_ => COMMA()) }
+  def bool: Parser[BOOL] = positioned { "Bool" ^^ (_ => BOOL()) }
 
-  def divides: Parser[DIVIDES] = positioned { "/" ^^ (_ => DIVIDES()) }
+  def string: Parser[STRING] = positioned { "String" ^^ (_ => STRING()) }
 
-  def float: Parser[FLOAT] = positioned { "float" ^^ (_ => FLOAT()) }
+  def line: Parser[LINE] = positioned { "Line" ^^ (_ => LINE()) }
 
-  def greaterThan: Parser[GREATER_THAN] = positioned { ">" ^^ (_ => GREATER_THAN()) }
+  def arc: Parser[ARC] = positioned { "Arc" ^^ (_ => ARC()) }
 
-  def lessThan: Parser[LESS_THAN] = positioned { "<" ^^ (_ => LESS_THAN()) }
+  def oval: Parser[OVAL] = positioned { "Oval" ^^ (_ => OVAL()) }
+
+  def rectangle: Parser[RECTANGLE] = positioned { "Rectangle" ^^ (_ => RECTANGLE()) }
 
   def plus: Parser[PLUS] = positioned { "+" ^^ (_ => PLUS()) }
 
   def minus: Parser[MINUS] = positioned { "-" ^^ (_ => MINUS()) }
 
-  def int: Parser[INT] = positioned { "int" ^^ (_ => INT()) }
+  def times: Parser[TIMES] = positioned { "*" ^^ (_ => TIMES()) }
 
-  def ifCondition: Parser[IF] = positioned { "if" ^^ (_ => IF()) }
+  def divides: Parser[DIVIDES] = positioned { "/" ^^ (_ => DIVIDES()) }
 
-  def elseCondition: Parser[ELSE] = positioned { "else" ^^ (_ => ELSE()) }
+  def mod: Parser[MOD] = positioned { "%" ^^ (_ => MOD()) }
+
+  def assign: Parser[ASSIGN] = positioned { "=" ^^ (_ => ASSIGN()) }
+
+  def equals: Parser[EQUALS] = positioned { "==" ^^ (_ => EQUALS()) }
+
+  def notEquals: Parser[NOT_EQUALS] = positioned { "<>" ^^ (_ => NOT_EQUALS()) }
+
+  def greaterThan: Parser[GREATER_THAN] = positioned { ">" ^^ (_ => GREATER_THAN()) }
+
+  def lessThan: Parser[LESS_THAN] = positioned { "<" ^^ (_ => LESS_THAN()) }
+
+  def greaterEquals: Parser[GREATER_EQUALS] = positioned { ">=" ^^ (_ => GREATER_EQUALS()) }
+
+  def lessEquals: Parser[LESS_EQUALS] = positioned { "<=" ^^ (_ => LESS_EQUALS()) }
 
   def leftParent: Parser[LEFT_PARENT] = positioned { "(" ^^ (_ => LEFT_PARENT()) }
 
   def rightParent: Parser[RIGHT_PARENT] = positioned { ")" ^^ (_ => RIGHT_PARENT()) }
 
-  def times: Parser[TIMES] = positioned { "*" ^^ (_ => TIMES()) }
+  def comma: Parser[COMMA] = positioned { "," ^^ (_ => COMMA()) }
 
-  def notEquals: Parser[NOT_EQUALS] = positioned { "<>" ^^ (_ => NOT_EQUALS()) }
+  def colon: Parser[COLON] = positioned { ":" ^^ (_ => COLON()) }
 
   def variable: Parser[VAR] = positioned { "var" ^^ (_ => VAR()) }
+
+  def array: Parser[ARRAY] = positioned { "array" ^^ (_ => ARRAY()) }
+
+  def matrix: Parser[MATRIX] = positioned { "matrix" ^^ (_ => MATRIX()) }
+
+  def function: Parser[FUN] = positioned { "fun" ^^ (_ => FUN()) }
+
+  def ifCondition: Parser[IF] = positioned { "if" ^^ (_ => IF()) }
+
+  def whileLoop: Parser[WHILE] = positioned { "while" ^^ (_ => WHILE()) }
+
+  def doLoop: Parser[DO] = positioned { "do" ^^ (_ => DO()) }
+
+  def elseCondition: Parser[ELSE] = positioned { "else" ^^ (_ => ELSE()) }
+
+  def and: Parser[AND] = positioned { "and" ^^ (_ => AND()) }
+
+  def or: Parser[OR] = positioned { "or" ^^ (_ => OR()) }
+
+  def black: Parser[BLACK] = positioned { "black" ^^ (_ => BLACK()) }
+
+  def darkGray: Parser[DARK_GRAY] = positioned { "darkGray" ^^ (_ => DARK_GRAY()) }
+
+  def lightGray: Parser[LIGHT_GRAY] = positioned { "lightGray" ^^ (_ => LIGHT_GRAY()) }
+
+  def blue: Parser[BLUE] = positioned { "blue" ^^ (_ => BLUE()) }
+
+  def green: Parser[GREEN] = positioned { "green" ^^ (_ => GREEN()) }
+
+  def yellow: Parser[YELLOW] = positioned { "yellow" ^^ (_ => YELLOW()) }
+
+  def red: Parser[RED] = positioned { "red" ^^ (_ => RED()) }
+
+  def orange: Parser[ORANGE] = positioned { "orange" ^^ (_ => ORANGE()) }
+
+  def main: Parser[MAIN] = positioned { "main" ^^ (_ => MAIN()) }
+
+  def createOval: Parser[CREATE_OVAL] = positioned { "createOval" ^^ (_ => CREATE_OVAL()) }
+
+  def createRectangle: Parser[CREATE_RECTANGLE] = positioned { "createRectangle" ^^ (_ => CREATE_RECTANGLE()) }
+
+  def createArc: Parser[CREATE_ARC] = positioned { "createArc" ^^ (_ => CREATE_ARC()) }
+
+  def createLine: Parser[CREATE_LINE] = positioned { "createLine" ^^ (_ => CREATE_LINE()) }
+
+  def moveX: Parser[MOVE_X] = positioned { "moveX" ^^ (_ => MOVE_X()) }
+
+  def moveY: Parser[MOVE_Y] = positioned { "moveY" ^^ (_ => MOVE_Y()) }
+
+  def setStroke: Parser[SET_STROKE] = positioned { "setStroke" ^^ (_ => SET_STROKE()) }
+
+  def scale: Parser[SCALE] = positioned { "scale" ^^ (_ => SCALE()) }
+
+  def setColor: Parser[SET_COLOR] = positioned { "setColor" ^^ (_ => SET_COLOR()) }
+
+  def read: Parser[READ] = positioned { "read" ^^ (_ => READ()) }
+
+  def write: Parser[WRITE] = positioned { "write" ^^ (_ => WRITE()) }
+
+  def draw: Parser[DRAW] = positioned { "draw" ^^ (_ => DRAW()) }
+
 
   private def processIndentations(tokens: List[Token], indents: List[Int] = List(0)): List[Token] = {
     tokens.headOption match {
