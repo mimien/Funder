@@ -8,30 +8,132 @@ import scala.util.parsing.input.Positional
   * @author emiliocornejo
   *         created on 03/03/17
   */
-sealed trait Token extends Positional {
+sealed trait Token extends Positional
 
-  // KEYWORDS
-  case class IDENTIFIER(str: String) extends Token
+// VALUES
+case class IDENTIFIER(str: String) extends Token
 
-  case class INT(str: Int) extends Token
+case class VAL_INT(str: Int) extends Token
 
-  case class FLOAT(str: Float) extends Token
+case class VAL_FLOAT(str: Float) extends Token
 
-  case class STRING(str: String) extends Token
+case class VAL_STRING(str: String) extends Token
 
-  case class VAR() extends Token
+case class INDENTATION(spaces: Int) extends Token
 
-  case class ARRAY() extends Token
+// TYPES
+case class INT() extends Token
 
-  case class MATRIX() extends Token
+case class FLOAT() extends Token
 
-  case class FUN() extends Token
+case class BOOL() extends Token
 
-  case class IF() extends Token
+case class STRING() extends Token
 
-  case class ELSE() extends Token
+case class LINE() extends Token
 
-  case class AND() extends Token
+case class ARC() extends Token
 
-  case class OR() extends Token
-}
+case class OVAL() extends Token
+
+case class RECTANGLE() extends Token
+
+// OPERATORS
+case class PLUS() extends Token
+
+case class MINUS() extends Token
+
+case class TIMES() extends Token
+
+case class DIVIDES() extends Token
+
+case class MOD() extends Token
+
+case class ASSIGN() extends Token
+
+case class EQUALS() extends Token
+
+case class NOT_EQUALS() extends Token
+
+case class GREATER_THAN() extends Token
+
+case class LESS_THAN() extends Token
+
+case class GREATER_EQUALS() extends Token
+
+case class LESS_EQUALS() extends Token
+
+case class LEFT_PARENT() extends Token
+
+case class RIGHT_PARENT() extends Token
+
+case class LEFT_BRACKET() extends Token
+
+case class RIGHT_BRACKET() extends Token
+
+case class COMMA() extends Token
+
+case class COLON() extends Token
+
+case class INDENT() extends Token
+
+case class DEDENT() extends Token
+
+// KEYWORDS
+case class VAR() extends Token
+
+case class ARRAY() extends Token
+
+case class MATRIX() extends Token
+
+case class FUN() extends Token
+
+case class IF() extends Token
+
+case class ELSE() extends Token
+
+case class AND() extends Token
+
+case class OR() extends Token
+
+case class BLACK() extends Token
+
+case class DARK_GRAY() extends Token
+
+case class LIGHT_GRAY() extends Token
+
+case class BLUE() extends Token
+
+case class GREEN() extends Token
+
+case class YELLOW() extends Token
+
+case class RED() extends Token
+
+case class ORANGE() extends Token
+
+case class MAIN() extends Token
+
+case class CREATE_CIRCLE() extends Token
+
+case class CREATE_RECTANGLE() extends Token
+
+case class CREATE_ARC() extends Token
+
+case class CREATE_LINE() extends Token
+
+case class MOVE_X() extends Token
+
+case class ROTATE_FIGURE() extends Token
+
+case class SET_STROKE() extends Token
+
+case class SCALE() extends Token
+
+case class SET_COLOR() extends Token
+
+case class READ() extends Token
+
+case class WRITE() extends Token
+
+case class DRAW() extends Token
