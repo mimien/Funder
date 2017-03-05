@@ -1,5 +1,7 @@
 package lexer
 
+import compiler.{Location, LexerError}
+
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
@@ -165,7 +167,18 @@ object LexicalAnalysis extends RegexParsers {
 
   def draw: Parser[DRAW] = positioned { "draw" ^^ (_ => DRAW()) }
 
+  def tokens: Parser[List[Token]] = {
+    phrase(rep1(int | float | bool | string | line)) ^^ { rawTokens =>
+      processIndentations(rawTokens)
+    }
+  }
 
+  def apply(code: String): Either[LexerError, List[Token]] = {
+    parse(tokens, code) match {
+      case NoSuccess(msg, next) => Left(LexerError(Location(next.pos.line, next.pos.column), msg))
+      case Success(result, next) => Right(result)
+    }
+  }
   private def processIndentations(tokens: List[Token], indents: List[Int] = List(0)): List[Token] = {
     tokens.headOption match {
       // if there is an increase in indentation level, we push this new level into the stack
