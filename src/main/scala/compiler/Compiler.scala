@@ -10,7 +10,7 @@ import parser.{AST, Parser}
   *         created on 06/03/17
   */
 object Compiler {
-  def apply(code: String): Either[CompilationError, AST] = {
+  def apply(code: String): Either[CompilationError, Any] = {
     for {
       tokens <- LexicalAnalysis(code)
       ast <- Parser(tokens)
