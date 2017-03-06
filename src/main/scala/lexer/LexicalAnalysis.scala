@@ -99,7 +99,12 @@ object LexicalAnalysis extends RegexParsers {
 
   def leftParent: Parser[LEFT_PARENT] = positioned { "(" ^^ (_ => LEFT_PARENT()) }
 
+
   def rightParent: Parser[RIGHT_PARENT] = positioned { ")" ^^ (_ => RIGHT_PARENT()) }
+
+  def leftBracket: Parser[LEFT_BRACKET] = positioned { "[" ^^ (_ => LEFT_BRACKET()) }
+
+  def rightBracket: Parser[RIGHT_BRACKET] = positioned { "]" ^^ (_ => RIGHT_BRACKET()) }
 
   def comma: Parser[COMMA] = positioned { "," ^^ (_ => COMMA()) }
 
@@ -170,10 +175,11 @@ object LexicalAnalysis extends RegexParsers {
   def tokens: Parser[List[Token]] = {
     phrase(rep1(int | float | bool | string | line | arc | oval | rectangle | plus | minus | times | divides
       | mod | assign | equals | notEquals | greaterThan | lessThan | greaterEquals | lessEquals | leftParent
-      | rightParent | comma | colon | variable | array | matrix | function | ifCondition | whileLoop | doLoop
-      | elseCondition | and | or | black | darkGray | lightGray | blue | green | yellow | red | orange | main
-      | createOval | createRectangle | createArc | createLine | moveX | moveY | setStroke | scale | setColor
-      | read | write | draw | valString | valInt | valFloat | indentation | identifier)) ^^ { rawTokens =>
+      | rightParent | leftBracket | rightBracket | comma | colon | variable | array | matrix | function
+      | ifCondition | whileLoop | doLoop | elseCondition | and | or | black | darkGray | lightGray | blue
+      | green | yellow | red | orange | main | createOval | createRectangle | createArc | createLine | moveX
+      | moveY | setStroke | scale | setColor | read | write | draw | valString | valInt | valFloat | indentation
+      | identifier)) ^^ { rawTokens =>
       processIndentations(rawTokens)
     }
   }
