@@ -57,15 +57,11 @@ case class Multiply(factor1: Expression, factor2: Expression) extends Expression
 case class Divide(factor1: Expression, factor2: Expression) extends Expression
 case class Module(factor1: Expression, factor2: Expression) extends Expression
 // Level 5 <FACTOR>
-case class Negative(constant: Expression) extends Expression
-case class Positive(constant: Expression) extends Expression
-// Level 6 <VALUES>
 case class IntegerN(num: Int) extends Expression
 case class FloatN(num: Float) extends Expression
 case class Str(num: String) extends Expression
 case class Bool(num: Boolean) extends Expression
 case class Id(name: String) extends Expression
-case class IdArray(name: String, row: Int) extends Expression
+case class IdArray(name: String, row: Expression) extends Expression
 case class IdMatrix(name: String, row: Int, column: Int) extends Expression
-// Level 7 <FUNCTION_CALL>
 case class FunCall(id: String, params: Seq[Expression]) extends Expression

@@ -37,7 +37,7 @@ object Parser extends Parsers {
       RECTANGLE() ^^ (_ => RectangleType)
   }
 
-  def fun: Parser[Function] = positioned{
+  def fun: Parser[Function] = positioned {
     FUN() ~> identifier ~ (LP() ~> rep1sep(vars, COMMA()) <~ RP()) ~ COLON() ~ dataType ~ block ^^ {
       case Id(id) ~ params ~ _ ~ typ ~ blck => Function(id, params, typ, blck)
     }
@@ -54,12 +54,13 @@ object Parser extends Parsers {
   }
 
   def assignment: Parser[Statement] = positioned {
-    identifier ~ (LB() ~> expression <~ RB() ~ (LB() ~> expression <~ RB()).?).? ~ ASSIGN() ~ expression ^^ {
-      case Id(id) ~ None ~ None ~ _ ~ expr => Assignment(id, expr)
-      case Id(id) ~ Some(IntegerN(size)) ~ None ~ _ ~ expr => AssignArray(id, size, expr)
-      case Id(id) ~ Some(IntegerN(rows)) ~ Some(IntegerN(cols)) ~ _ ~ expr => AssignMatrix(id, rows, cols, expr)
+    identifier ~ ((LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()).?).? ~ ASSIGN() ~ expression ^^ {
+      case Id(id) ~ None ~ _ ~ expr => Assignment(id, expr)
+      case Id(id) ~ Some(IntegerN(size) ~ None) ~ _ ~ expr => AssignArray(id, size, expr)
+      case Id(id) ~ Some(IntegerN(rows) ~ Some(IntegerN(cols))) ~ _ ~ expr => AssignMatrix(id, rows, cols, expr)
     }
   }
+
   def ifThen: Parser[Statement] = positioned {
     (IF() ~> expression <~ THEN()) ~ conditionBlock ~ (ELSE() ~> conditionBlock).? ^^ {
       case expr ~ cBlock ~ None => IfThen(expr, cBlock)
@@ -76,8 +77,10 @@ object Parser extends Parsers {
       case expr ~ cBlock => WhileDo(expr, cBlock)
     }
   }
+
   def functionCall: Parser[FunctionCall] = positioned {
     identifier ~ (LP() ~> rep1sep(expression, COMMA()) <~ RP()) ^^ {
+      case Id(id) ~ expressions => FunctionCall(id, expressions)
       case Id(id) ~ expressions => FunctionCall(id, expressions)
     }
   }
@@ -87,6 +90,7 @@ object Parser extends Parsers {
       case compr ~ None => compr
       case comp1 ~ Some(AND() ~ comp2) => And(comp1, comp2)
       case comp1 ~ Some(OR() ~ comp2) => Or(comp1, comp2)
+      case compr ~ Some(_) => compr
     }
   }
 
@@ -99,24 +103,26 @@ object Parser extends Parsers {
       case expr1 ~ Some(LESS_EQUALS() ~ expr2) => LessEquals(expr1, expr2)
       case expr1 ~ Some(NOT_EQUALS() ~ expr2) => Unequals(expr1, expr2)
       case expr1 ~ Some(EQUALS() ~ expr2) => Equals(expr1, expr2)
+      case expr ~ Some(_) => expr
     }
   }
+
   def exp: Parser[Expression] = positioned {
     term ~ rep((PLUS() | MINUS()) ~ term) ^^ {
-      case firstTerm ~ ops => ops.reduce((t1, t2) => Sum(firstTerm, t1._2 match {
-        case Sum(_, _) => Sum(t1._2, t2._2)
-        case Subtract(_, _) => Subtract(t1._2, t2._2)
-      }))
+      case firstTerm ~ ops => ops.head._1 match {
+        case PLUS() => Sum(firstTerm, ops.head._2)
+        case MINUS() => Subtract(firstTerm, ops.head._2)
+      }
     }
   }
+
   def term: Parser[Expression] = positioned {
     factor ~ rep((DIVIDES() | TIMES() | MOD()) ~ factor) ^^ {
-      case firstFactor ~ ops =>
-        ops.reduce((t1, t2) => Multiply(firstFactor, t1._2 match {
-          case DIVIDES() => Multiply(t1._2, t2._2)
-          case TIMES() => Divide(t1._2, t2._2)
-          case MOD() => Module(t1._2, t2._2)
-        }))
+      case firstFactor ~ ops => ops.head._1 match {
+        case DIVIDES() => Divide(firstFactor, ops.head._2)
+        case TIMES() => Multiply(firstFactor, ops.head._2)
+        case MOD() => Module(firstFactor, ops.head._2)
+      }
     }
   }
 
@@ -130,11 +136,12 @@ object Parser extends Parsers {
       stringValue |
       identifier |
       identifier ~ (LB() ~> expression <~ RB()) ^^ {
-        case Id(id) ~ IntegerN(n) => IdArray(id, n)
+        case Id(id) ~ expr => IdArray(id, expr)
       } | identifier ~ (LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()) ^^ {
-        case Id(id) ~ IntegerN(rows) ~ IntegerN(cols) => IdMatrix(id, rows, cols)
-      }
+      case Id(id) ~ IntegerN(rows) ~ IntegerN(cols) => IdMatrix(id, rows, cols)
+    }
   }
+
   def funCall: Parser[Expression] = positioned {
     identifier ~ (LP() ~> rep1sep(expression, COMMA()) <~ RP()) ^^ {
       case Id(id) ~ expressions =>
@@ -155,12 +162,13 @@ object Parser extends Parsers {
       case Success(result, next) => Right(result)
     }
   }
+
   private def identifier: Parser[Expression] = positioned {
     accept("identifier", { case IDENTIFIER(name) => Id(name) })
   }
 
   private def stringValue: Parser[Expression] = positioned {
-    accept("string literal", { case lit@Str(_) => lit })
+    accept("string literal", { case VAL_STRING(str) => Str(str) })
   }
 
   private def intValue: Parser[Expression] = positioned {

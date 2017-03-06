@@ -33,6 +33,7 @@ object Test {
         |""".stripMargin
     val result = LexicalAnalysis(code)
     println(result)
-
+    val ast = Compiler(code)
+    println(ast)
   }
 }
