@@ -37,14 +37,14 @@ object LexicalAnalysis extends RegexParsers {
   }
 
   def valInt: Parser[VAL_INT] = positioned {
-    "[0-9]+".r ^^ { str =>
+    "-?[0-9]+".r ^^ { str =>
       val int = str.toInt
       VAL_INT(int)
     }
   }
 
   def valFloat: Parser[VAL_FLOAT] = positioned {
-    "[0-9]+.[0-9]+".r ^^ { str =>
+    "-?[0-9]+.[0-9]+".r ^^ { str =>
       val float = str.toFloat
       VAL_FLOAT(float)
     }
@@ -97,14 +97,14 @@ object LexicalAnalysis extends RegexParsers {
 
   def lessEquals: Parser[LESS_EQUALS] = positioned { "<=" ^^ (_ => LESS_EQUALS()) }
 
-  def leftParent: Parser[LEFT_PARENT] = positioned { "(" ^^ (_ => LEFT_PARENT()) }
+  def leftParent: Parser[LP] = positioned { "(" ^^ (_ => LP()) }
 
 
-  def rightParent: Parser[RIGHT_PARENT] = positioned { ")" ^^ (_ => RIGHT_PARENT()) }
+  def rightParent: Parser[RP] = positioned { ")" ^^ (_ => RP()) }
 
-  def leftBracket: Parser[LEFT_BRACKET] = positioned { "[" ^^ (_ => LEFT_BRACKET()) }
+  def leftBracket: Parser[LB] = positioned { "[" ^^ (_ => LB()) }
 
-  def rightBracket: Parser[RIGHT_BRACKET] = positioned { "]" ^^ (_ => RIGHT_BRACKET()) }
+  def rightBracket: Parser[RB] = positioned { "]" ^^ (_ => RB()) }
 
   def comma: Parser[COMMA] = positioned { "," ^^ (_ => COMMA()) }
 
@@ -119,6 +119,8 @@ object LexicalAnalysis extends RegexParsers {
   def function: Parser[FUN] = positioned { "fun" ^^ (_ => FUN()) }
 
   def ifCondition: Parser[IF] = positioned { "if" ^^ (_ => IF()) }
+
+  def then: Parser[THEN] = positioned { "then" ^^ (_ => THEN()) }
 
   def whileLoop: Parser[WHILE] = positioned { "while" ^^ (_ => WHILE()) }
 
@@ -172,14 +174,16 @@ object LexicalAnalysis extends RegexParsers {
 
   def draw: Parser[DRAW] = positioned { "draw" ^^ (_ => DRAW()) }
 
+  def retrn: Parser[RETURN] = positioned { "return" ^^ (_ => RETURN()) }
+
   def tokens: Parser[List[Token]] = {
     phrase(rep1(int | float | bool | string | line | arc | oval | rectangle | plus | minus | times | divides
       | mod | assign | equals | notEquals | greaterThan | lessThan | greaterEquals | lessEquals | leftParent
       | rightParent | leftBracket | rightBracket | comma | colon | variable | array | matrix | function
-      | ifCondition | whileLoop | doLoop | elseCondition | and | or | black | darkGray | lightGray | blue
-      | green | yellow | red | orange | main | createOval | createRectangle | createArc | createLine | moveX
-      | moveY | setStroke | scale | setColor | read | write | draw | valString | valInt | valFloat | indentation
-      | identifier)) ^^ { rawTokens =>
+      | ifCondition | then | whileLoop | doLoop | elseCondition | and | or | black | darkGray | lightGray
+      | blue | green | yellow | red | orange | main | createOval | createRectangle | createArc | createLine
+      | moveX | moveY | setStroke | scale | setColor | read | write | draw | retrn | valString | valInt
+      | valFloat | indentation | identifier)) ^^ { rawTokens =>
       processIndentations(rawTokens)
     }
   }

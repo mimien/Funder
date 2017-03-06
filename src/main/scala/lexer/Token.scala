@@ -19,6 +19,9 @@ case class VAL_FLOAT(str: Float) extends Token
 
 case class VAL_STRING(str: String) extends Token
 
+/* todo: implement boolean value */
+case class VAL_BOOL(str: Boolean) extends Token
+
 case class INDENTATION(spaces: Int) extends Token
 
 // TYPES
@@ -63,13 +66,13 @@ case class GREATER_EQUALS() extends Token
 
 case class LESS_EQUALS() extends Token
 
-case class LEFT_PARENT() extends Token
+case class LP() extends Token // Left Parenthesis
 
-case class RIGHT_PARENT() extends Token
+case class RP() extends Token // Right Parenthesis
 
-case class LEFT_BRACKET() extends Token
+case class LB() extends Token // Left Bracket
 
-case class RIGHT_BRACKET() extends Token
+case class RB() extends Token // Right Bracket
 
 case class COMMA() extends Token
 
@@ -89,6 +92,8 @@ case class MATRIX() extends Token
 case class FUN() extends Token
 
 case class IF() extends Token
+
+case class THEN() extends Token
 
 case class WHILE() extends Token
 
@@ -143,3 +148,5 @@ case class READ() extends Token
 case class WRITE() extends Token
 
 case class DRAW() extends Token
+
+case class RETURN() extends Token
