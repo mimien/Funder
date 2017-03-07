@@ -22,13 +22,15 @@ object Test {
         |    writ("hola")
         |  else
         |    writ(param1[1])
+        |  return z
         |
         |main
         |  var oval: Oval
         |  var i: Int
-        |  oval = createOvl(32,32,32,32, darkGray)
+        |  oval = createOvl(32,32,32,32, darkGry)
         |  while i <> 10 do
-        |    setColr(oval, yellow)
+        |    setColr(oval, yellw)
+        |  return 0
         |
         |""".stripMargin
     val result = LexicalAnalysis(code)

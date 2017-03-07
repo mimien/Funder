@@ -38,7 +38,7 @@ object Parser extends Parsers {
   }
 
   def block: Parser[Any] =  {
-    INDENT() ~> rep(vars) ~ rep1(statement) ~ RETURN() ~ expression <~ INDENT()
+    INDENT() ~> rep(vars) ~ rep1(statement) ~ RETURN() ~ expression <~ DEDENT()
   }
 
   def statement: Parser[Any] =  {
@@ -62,7 +62,7 @@ object Parser extends Parsers {
   }
 
   def functionCall: Parser[Any] =  {
-    identifier ~ (LP() ~> rep1sep(expression, COMMA()) <~ RP())
+    identifier ~ (LP() ~> repsep(expression, COMMA()) <~ RP())
   }
 
   def expression: Parser[Any] =  {
@@ -82,7 +82,7 @@ object Parser extends Parsers {
   }
 
   def factor: Parser[Any] = {
-    LP() ~> expression <~ RP() | values | funCall
+    LP() ~> expression <~ RP() | funCall | values
   }
 
   def values: Parser[Any] =  {
@@ -95,7 +95,7 @@ object Parser extends Parsers {
   }
 
   def funCall: Parser[Any] =  {
-    identifier ~ (LP() ~> rep1sep(expression, COMMA()) <~ RP())
+    identifier ~ (LP() ~> repsep(expression, COMMA()) <~ RP())
   }
 
   def program: Parser[Any] =  {
