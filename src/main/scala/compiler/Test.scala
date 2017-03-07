@@ -19,16 +19,16 @@ object Test {
         |  var z: Int
         |  z = x + y
         |  if z == 10 then
-        |    write("hola")
+        |    writ("hola")
         |  else
-        |    write(param1[1])
+        |    writ(param1[1])
         |
         |main
         |  var oval: Oval
         |  var i: Int
-        |  oval = createOval(32,32,32,32, darkGray)
+        |  oval = createOvl(32,32,32,32, darkGray)
         |  while i <> 10 do
-        |    setColor(oval, yellow)
+        |    setColr(oval, yellow)
         |
         |""".stripMargin
     val result = LexicalAnalysis(code)

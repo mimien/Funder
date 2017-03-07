@@ -81,17 +81,17 @@ object Parser extends Parsers {
     factor ~ rep((DIVIDES() | TIMES() | MOD()) ~ factor)
   }
 
-  def factor: Parser[Any] =  {
-    expression | values | funCall
+  def factor: Parser[Any] = {
+    LP() ~> expression <~ RP() | values | funCall
   }
 
   def values: Parser[Any] =  {
     intValue |
       floatValue |
       stringValue |
-      identifier |
+      identifier ~ (LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()) |
       identifier ~ (LB() ~> expression <~ RB()) |
-      identifier ~ (LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB())
+      identifier
   }
 
   def funCall: Parser[Any] =  {
