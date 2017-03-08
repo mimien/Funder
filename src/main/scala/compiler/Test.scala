@@ -28,7 +28,7 @@ object Test {
         |  var oval: Oval
         |  var i: Int
         |  oval = createOvl(32,32,32,32, darkGry)
-        |  while i <> 10 do
+        |  while i >= 10 do
         |    setColr(oval, yellw)
         |  return 0
         |
