@@ -178,7 +178,7 @@ object LexicalAnalysis extends RegexParsers {
 
   def tokens: Parser[List[Token]] = {
     phrase(rep1(int | float | bool | string | line | arc | oval | rectangle | plus | minus | times | divides
-      | mod | assign | equals | notEquals | greaterThan | lessThan | greaterEquals | lessEquals | leftParent
+      | mod | equals | notEquals | assign | greaterThan | lessThan | greaterEquals | lessEquals | leftParent
       | rightParent | leftBracket | rightBracket | comma | colon | variable | array | matrix | function
       | ifCondition | then | whileLoop | doLoop | elseCondition | and | or | black | darkGray | lightGray
       | blue | green | yellow | red | orange | main | createOval | createRectangle | createArc | createLine

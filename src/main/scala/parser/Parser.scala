@@ -44,7 +44,7 @@ object Parser extends Parsers {
   }
 
   def block: Parser[Block] = positioned {
-    INDENT() ~> rep(vars) ~ rep1(statement) ~ RETURN() ~ expression <~ INDENT() ^^ {
+    INDENT() ~> rep(vars) ~ rep1(statement) ~ RETURN() ~ expression <~ DEDENT() ^^ {
       case varss ~ statements ~ _ ~ expr => Block(varss, statements, expr)
     }
   }
@@ -79,8 +79,7 @@ object Parser extends Parsers {
   }
 
   def functionCall: Parser[FunctionCall] = positioned {
-    identifier ~ (LP() ~> rep1sep(expression, COMMA()) <~ RP()) ^^ {
-      case Id(id) ~ expressions => FunctionCall(id, expressions)
+    identifier ~ (LP() ~> repsep(expression, COMMA()) <~ RP()) ^^ {
       case Id(id) ~ expressions => FunctionCall(id, expressions)
     }
   }
@@ -90,7 +89,6 @@ object Parser extends Parsers {
       case compr ~ None => compr
       case comp1 ~ Some(AND() ~ comp2) => And(comp1, comp2)
       case comp1 ~ Some(OR() ~ comp2) => Or(comp1, comp2)
-      case compr ~ Some(_) => compr
     }
   }
 
@@ -103,12 +101,12 @@ object Parser extends Parsers {
       case expr1 ~ Some(LESS_EQUALS() ~ expr2) => LessEquals(expr1, expr2)
       case expr1 ~ Some(NOT_EQUALS() ~ expr2) => Unequals(expr1, expr2)
       case expr1 ~ Some(EQUALS() ~ expr2) => Equals(expr1, expr2)
-      case expr ~ Some(_) => expr
     }
   }
 
   def exp: Parser[Expression] = positioned {
     term ~ rep((PLUS() | MINUS()) ~ term) ^^ {
+      case firstTerm ~ List() => firstTerm
       case firstTerm ~ ops => ops.head._1 match {
         case PLUS() => Sum(firstTerm, ops.head._2)
         case MINUS() => Subtract(firstTerm, ops.head._2)
@@ -118,6 +116,7 @@ object Parser extends Parsers {
 
   def term: Parser[Expression] = positioned {
     factor ~ rep((DIVIDES() | TIMES() | MOD()) ~ factor) ^^ {
+      case firstFactor ~ List() => firstFactor
       case firstFactor ~ ops => ops.head._1 match {
         case DIVIDES() => Divide(firstFactor, ops.head._2)
         case TIMES() => Multiply(firstFactor, ops.head._2)
@@ -127,23 +126,23 @@ object Parser extends Parsers {
   }
 
   def factor: Parser[Expression] = positioned {
-    expression | values | funCall
+    LP() ~> expression <~ RP() | funCall | values
   }
 
   def values: Parser[Expression] = positioned {
     intValue |
       floatValue |
       stringValue |
-      identifier |
-      identifier ~ (LB() ~> expression <~ RB()) ^^ {
+      identifier ~ (LB() ~> intValue <~ RB()) ~ (LB() ~> intValue <~ RB()) ^^ {
+        case Id(id) ~ IntegerN(rows) ~ IntegerN(cols) => IdMatrix(id, rows, cols)
+      } |
+      identifier ~ (LB() ~> intValue <~ RB()) ^^ {
         case Id(id) ~ expr => IdArray(id, expr)
-      } | identifier ~ (LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()) ^^ {
-      case Id(id) ~ IntegerN(rows) ~ IntegerN(cols) => IdMatrix(id, rows, cols)
-    }
+      } | identifier
   }
 
   def funCall: Parser[Expression] = positioned {
-    identifier ~ (LP() ~> rep1sep(expression, COMMA()) <~ RP()) ^^ {
+    identifier ~ (LP() ~> repsep(expression, COMMA()) <~ RP()) ^^ {
       case Id(id) ~ expressions =>
         FunCall(id, expressions)
     }
@@ -159,23 +158,23 @@ object Parser extends Parsers {
     val reader = new TokenReader(tokens)
     program(reader) match {
       case NoSuccess(msg, next) => Left(ParserError(Location(next.pos.line, next.pos.column), msg))
-      case Success(result, next) => Right(result)
+      case Success(result, _) => Right(result)
     }
   }
 
-  private def identifier: Parser[Expression] = positioned {
+  private def identifier: Parser[Id] = positioned {
     accept("identifier", { case IDENTIFIER(name) => Id(name) })
   }
 
-  private def stringValue: Parser[Expression] = positioned {
+  private def stringValue: Parser[Str] = positioned {
     accept("string literal", { case VAL_STRING(str) => Str(str) })
   }
 
-  private def intValue: Parser[Expression] = positioned {
+  private def intValue: Parser[IntegerN] = positioned {
     accept("constant integer", { case VAL_INT(num) => IntegerN(num) })
   }
 
-  private def floatValue: Parser[Expression] = positioned {
+  private def floatValue: Parser[FloatN] = positioned {
     accept("constant float", { case VAL_FLOAT(num) => FloatN(num) })
   }
 }
