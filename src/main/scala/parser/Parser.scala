@@ -27,13 +27,13 @@ object Parser extends Parsers {
   }
 
   def dataType: Parser[Type] = positioned {
-    INT() ^^ (_ => IntType) |
-      FLOAT() ^^ (_ => FloatType) |
-      BOOL() ^^ (_ => BoolType) |
-      STRING() ^^ (_ => StringType) |
-      LINE() ^^ (_ => LineType) |
-      ARC() ^^ (_ => ArcType) |
-      OVAL() ^^ (_ => OvalType) |
+    INT()         ^^ (_ => IntType) |
+      FLOAT()     ^^ (_ => FloatType) |
+      BOOL()      ^^ (_ => BoolType) |
+      STRING()    ^^ (_ => StringType) |
+      LINE()      ^^ (_ => LineType) |
+      ARC()       ^^ (_ => ArcType) |
+      OVAL()      ^^ (_ => OvalType) |
       RECTANGLE() ^^ (_ => RectangleType)
   }
 
@@ -104,25 +104,12 @@ object Parser extends Parsers {
     }
   }
 
-  def exp: Parser[Expression] = positioned {
-    term ~ rep((PLUS() | MINUS()) ~ term) ^^ {
-      case firstTerm ~ List() => firstTerm
-      case firstTerm ~ ops => ops.head._1 match {
-        case PLUS() => Sum(firstTerm, ops.head._2)
-        case MINUS() => Subtract(firstTerm, ops.head._2)
-      }
-    }
-  }
+  // Magic
+  def exp: Parser[Expression] = positioned(chainl1(term, PLUS() ^^^ Sum | MINUS() ^^^ Subtract))
 
+  // Magic
   def term: Parser[Expression] = positioned {
-    factor ~ rep((DIVIDES() | TIMES() | MOD()) ~ factor) ^^ {
-      case firstFactor ~ List() => firstFactor
-      case firstFactor ~ ops => ops.head._1 match {
-        case DIVIDES() => Divide(firstFactor, ops.head._2)
-        case TIMES() => Multiply(firstFactor, ops.head._2)
-        case MOD() => Module(firstFactor, ops.head._2)
-      }
-    }
+    chainl1(factor, TIMES() ^^^ Multiply | DIVIDES() ^^^ Divide | MOD() ^^^ Module)
   }
 
   def factor: Parser[Expression] = positioned {
