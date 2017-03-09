@@ -51,9 +51,9 @@ sealed trait Statement extends Positional
 
 case class Assignment(name: String, expr: Expression) extends Statement
 
-case class AssignArray(name: String, size: Int, expr: Expression) extends Statement
+case class AssignArray(name: String, size: Expression, expr: Expression) extends Statement
 
-case class AssignMatrix(name: String, numOfRows: Int, numOfColumns: Int, expr: Expression) extends Statement
+case class AssignMatrix(name: String, numOfRows: Expression, numOfColumns: Expression, expr: Expression) extends Statement
 
 case class IfThen(expr: Expression, block: ConditionBlock) extends Statement
 
@@ -86,17 +86,17 @@ case class LessEquals(expr1: Expression, expr2: Expression) extends Expression
 // Level 3 <EXPR>
 case class Sum(term1: Expression, term2: Expression) extends Expression
 
-case class Subtract(term1: Expression, term2: Expression) extends Expression
+case class Sub(term1: Expression, term2: Expression) extends Expression
 
 // Level 4 <TERM>
-case class Multiply(factor1: Expression, factor2: Expression) extends Expression
+case class Mul(factor1: Expression, factor2: Expression) extends Expression
 
-case class Divide(factor1: Expression, factor2: Expression) extends Expression
+case class Div(factor1: Expression, factor2: Expression) extends Expression
 
-case class Module(factor1: Expression, factor2: Expression) extends Expression
+case class Mod(factor1: Expression, factor2: Expression) extends Expression
 
 // Level 5 <FACTOR>
-case class IntegerN(num: Int) extends Expression
+case class IntN(num: Int) extends Expression
 
 case class FloatN(num: Float) extends Expression
 
@@ -108,6 +108,6 @@ case class Id(name: String) extends Expression
 
 case class IdArray(name: String, row: Expression) extends Expression
 
-case class IdMatrix(name: String, row: Int, column: Int) extends Expression
+case class IdMatrix(name: String, row: Expression, column: Expression) extends Expression
 
 case class FunCall(id: String, params: Seq[Expression]) extends Expression

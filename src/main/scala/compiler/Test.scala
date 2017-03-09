@@ -14,7 +14,7 @@ object Test {
       """
         |main
         |  z = 4 - 10 + 4 * 4
-        |  
+        |  id[z + 1] = 10
         |  return 0
         |""".stripMargin
     val result = LexicalAnalysis(code)

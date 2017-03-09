@@ -7,7 +7,7 @@ import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.input.{NoPosition, Position, Reader}
 
 /**
-  * Class description
+  * Parsers based on the syntax diagrams from Funder
   *
   * @author emiliocornejo
   *         created on 04/03/17
@@ -21,7 +21,7 @@ object Parser extends Parsers {
 
     (VAR() | arrayParser | matrixParser) ~ identifier ~ COLON() ~ dataType ^^ {
       case VAR() ~ Id(id) ~ _ ~ typ => Variable(id, typ)
-      case ARRAY() ~ _ ~ IntegerN(n) ~ _ ~ Id(id) ~ _ ~ typ => Array(id, typ, n)
+      case ARRAY() ~ _ ~ IntN(n) ~ _ ~ Id(id) ~ _ ~ typ => Array(id, typ, n)
       case MATRIX() ~ Id(id) ~ _ ~ typ => Variable(id, typ)
     }
   }
@@ -44,7 +44,7 @@ object Parser extends Parsers {
   }
 
   def block: Parser[Block] = positioned {
-    INDENT() ~> rep(vars) ~ rep1(statement) ~ RETURN() ~ expression <~ DEDENT() ^^ {
+    INDENT() ~> rep(vars)  ~  rep1(statement) ~ RETURN() ~ expression <~ DEDENT() ^^ {
       case varss ~ statements ~ _ ~ expr => Block(varss, statements, expr)
     }
   }
@@ -56,8 +56,8 @@ object Parser extends Parsers {
   def assignment: Parser[Statement] = positioned {
     identifier ~ ((LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()).?).? ~ ASSIGN() ~ expression ^^ {
       case Id(id) ~ None ~ _ ~ expr => Assignment(id, expr)
-      case Id(id) ~ Some(IntegerN(size) ~ None) ~ _ ~ expr => AssignArray(id, size, expr)
-      case Id(id) ~ Some(IntegerN(rows) ~ Some(IntegerN(cols))) ~ _ ~ expr => AssignMatrix(id, rows, cols, expr)
+      case Id(id) ~ Some(size ~ None) ~ _ ~ expr => AssignArray(id, size, expr)
+      case Id(id) ~ Some(rows ~ Some(cols)) ~ _ ~ expr => AssignMatrix(id, rows, cols, expr)
     }
   }
 
@@ -89,6 +89,7 @@ object Parser extends Parsers {
       case compr ~ None => compr
       case comp1 ~ Some(AND() ~ comp2) => And(comp1, comp2)
       case comp1 ~ Some(OR() ~ comp2) => Or(comp1, comp2)
+      case comp ~ Some(_) => comp
     }
   }
 
@@ -101,15 +102,16 @@ object Parser extends Parsers {
       case expr1 ~ Some(LESS_EQUALS() ~ expr2) => LessEquals(expr1, expr2)
       case expr1 ~ Some(NOT_EQUALS() ~ expr2) => Unequals(expr1, expr2)
       case expr1 ~ Some(EQUALS() ~ expr2) => Equals(expr1, expr2)
+      case expr ~ Some(_) => expr
     }
   }
 
   // Magic
-  def exp: Parser[Expression] = positioned(chainl1(term, PLUS() ^^^ Sum | MINUS() ^^^ Subtract))
+  def exp: Parser[Expression] = positioned(chainl1(term, PLUS() ^^^ Sum | MINUS() ^^^ Sub))
 
   // Magic
   def term: Parser[Expression] = positioned {
-    chainl1(factor, TIMES() ^^^ Multiply | DIVIDES() ^^^ Divide | MOD() ^^^ Module)
+    chainl1(factor, TIMES() ^^^ Mul | DIVIDES() ^^^ Div | MOD() ^^^ Mod)
   }
 
   def factor: Parser[Expression] = positioned {
@@ -121,7 +123,7 @@ object Parser extends Parsers {
       floatValue |
       stringValue |
       identifier ~ (LB() ~> intValue <~ RB()) ~ (LB() ~> intValue <~ RB()) ^^ {
-        case Id(id) ~ IntegerN(rows) ~ IntegerN(cols) => IdMatrix(id, rows, cols)
+        case Id(id) ~ rows ~ cols => IdMatrix(id, rows, cols)
       } |
       identifier ~ (LB() ~> intValue <~ RB()) ^^ {
         case Id(id) ~ expr => IdArray(id, expr)
@@ -157,8 +159,8 @@ object Parser extends Parsers {
     accept("string literal", { case VAL_STRING(str) => Str(str) })
   }
 
-  private def intValue: Parser[IntegerN] = positioned {
-    accept("constant integer", { case VAL_INT(num) => IntegerN(num) })
+  private def intValue: Parser[IntN] = positioned {
+    accept("constant integer", { case VAL_INT(num) => IntN(num) })
   }
 
   private def floatValue: Parser[FloatN] = positioned {
