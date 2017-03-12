@@ -1,4 +1,4 @@
-package lexer
+package lexical
 
 import compiler.{Location, LexerError}
 
@@ -11,7 +11,7 @@ import scala.util.parsing.combinator.RegexParsers
   * @author emiliocornejo
   *         created on 04/03/17
   */
-object LexicalAnalysis extends RegexParsers {
+object Lexer extends RegexParsers {
 
   override val whiteSpace: Regex = "[ \t\r\f]+".r
 

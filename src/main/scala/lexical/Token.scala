@@ -1,4 +1,4 @@
-package lexer
+package lexical
 
 import scala.util.parsing.input.Positional
 

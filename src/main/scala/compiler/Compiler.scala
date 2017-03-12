@@ -1,7 +1,7 @@
 package compiler
 
-import lexer.LexicalAnalysis
-import parser.{AST, Parser}
+import lexical.Lexer
+import syntax.{AST, Parser}
 
 /**
   * Class description
@@ -12,7 +12,7 @@ import parser.{AST, Parser}
 object Compiler {
   def apply(code: String): Either[CompilationError, AST] = {
     for {
-      tokens <- LexicalAnalysis(code)
+      tokens <- Lexer(code)
       ast <- Parser(tokens)
     } yield ast
   }

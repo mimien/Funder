@@ -1,8 +1,9 @@
-package parser
+package syntax
 
 import compiler.{Location, ParserError}
-import lexer._
+import lexical._
 
+import scala.collection.immutable.HashSet
 import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.input.{NoPosition, Position, Reader}
 
@@ -38,7 +39,7 @@ object Parser extends Parsers {
   }
 
   def fun: Parser[Function] = positioned {
-    FUN() ~> identifier ~ (LP() ~> rep1sep(vars, COMMA()) <~ RP()) ~ COLON() ~ dataType ~ block ^^ {
+    FUN() ~> identifier ~ (LP() ~> repsep(vars, COMMA()) <~ RP()) ~ COLON() ~ dataType ~ block ^^ {
       case Id(id) ~ params ~ _ ~ typ ~ blck => Function(id, params, typ, blck)
     }
   }
