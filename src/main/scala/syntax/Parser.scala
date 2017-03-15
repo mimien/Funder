@@ -17,13 +17,13 @@ object Parser extends Parsers {
   override type Elem = Token
 
   def vars: Parser[Vars] = positioned {
-    val arrayParser = ARRAY() ~ LB() ~ expression ~ RB()
-    val matrixParser = MATRIX() ~ LB() ~ expression ~ RB() ~ LB() ~ expression ~ RB()
+    val arrayParser = ARRAY() ~ (LB() ~> expression <~ RB())
+    val matrixParser = MATRIX() ~ (LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB())
 
     (VAR() | arrayParser | matrixParser) ~ identifier ~ COLON() ~ dataType ^^ {
       case VAR() ~ Id(id) ~ _ ~ typ => Variable(id, typ)
-      case ARRAY() ~ _ ~ IntN(n) ~ _ ~ Id(id) ~ _ ~ typ => Array(id, typ, n)
-      case MATRIX() ~ Id(id) ~ _ ~ typ => Variable(id, typ)
+      case ARRAY() ~ IntN(n) ~ Id(id) ~ _ ~ typ => Array(id, typ, n)
+      case MATRIX() ~ IntN(row) ~ IntN(col) ~ Id(id) ~ _ ~ typ => Matrix(id, typ, row, col)
     }
   }
 

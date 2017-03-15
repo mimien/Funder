@@ -14,7 +14,7 @@ object Test {
   def main(args: Array[String]): Unit = {
     val code =
       """
-        |var x: Int
+        |matrix[10][1] arr: Int
         |fun f(var number: Int, var str: String): Int
         |  var x: Float
         |  print(number, str)
@@ -38,6 +38,7 @@ object Test {
     val eval = ast match {
       case Right(p@Program(_, _, _)) => Evaluator(p)
       case Left(value) => println(value)
+      case Right(value) => println(value)
     }
     print(eval)
   }
