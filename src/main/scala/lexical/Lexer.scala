@@ -26,7 +26,7 @@ object Lexer extends RegexParsers {
     * @return a parser that recognizes the identifier token
     */
   def identifier: Parser[IDENTIFIER] = positioned {
-    "[a-zA-Z_][a-zA-Z0-9_]*".r ^^ { str => IDENTIFIER(str) }
+    "[a-z][a-zA-Z0-9_]*".r ^^ { str => IDENTIFIER(str) }
   }
 
   def valString: Parser[VAL_STRING] = positioned {
@@ -47,6 +47,13 @@ object Lexer extends RegexParsers {
     "-?[0-9]+.[0-9]+".r ^^ { str =>
       val float = str.toFloat
       VAL_FLOAT(float)
+    }
+  }
+
+  def valBool: Parser[VAL_BOOL] = positioned {
+    "true|false".r ^^ { str =>
+      val float = str.toBoolean
+      VAL_BOOL(float)
     }
   }
 
@@ -180,10 +187,10 @@ object Lexer extends RegexParsers {
     phrase(rep1(int | float | bool | string | line | arc | oval | rectangle | plus | minus | times | divides
       | mod | equals | notEquals | assign | greaterEquals | lessEquals | greaterThan | lessThan | leftParent
       | rightParent | leftBracket | rightBracket | comma | colon | variable | array | matrix | function
-      | ifCondition | then | whileLoop | doLoop | elseCondition | and | or | black | darkGray | lightGray
-      | blue | green | yellow | red | orange | main | createOval | createRectangle | createArc | createLine
-      | moveX | moveY | setStroke | scale | setColor | read | write | draw | retrn | valString | valInt
-      | valFloat | indentation | identifier)) ^^ { rawTokens =>
+      | ifCondition | then | whileLoop | doLoop | elseCondition | and | or /*| black | darkGray | lightGray*/
+      /*| blue | green | yellow | red | orange */| main /*| createOval | createRectangle | createArc | createLine*/
+      /*| moveX | moveY | setStroke | scale | setColor | draw*/ | write | read | retrn | valString | valFloat
+      | valInt | valBool | indentation | identifier)) ^^ { rawTokens =>
       processIndentations(rawTokens)
     }
   }

@@ -19,7 +19,6 @@ case class VAL_FLOAT(str: Float) extends Token
 
 case class VAL_STRING(str: String) extends Token
 
-/* todo: implement boolean value */
 case class VAL_BOOL(str: Boolean) extends Token
 
 case class INDENTATION(spaces: Int) extends Token

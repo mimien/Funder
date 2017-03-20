@@ -16,7 +16,8 @@ object Test {
       """
         |matrix[10][1] arr: Int
         |fun f(var number: Int, var str: String): Int
-        |  var x: Float
+        |  var z: Bool
+        |  z = true
         |  print(number, str)
         |  return 1 + 1
         |

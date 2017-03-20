@@ -115,14 +115,15 @@ object Parser extends Parsers {
     chainl1(factor, TIMES() ^^^ Mul | DIVIDES() ^^^ Div | MOD() ^^^ Mod)
   }
 
-  def factor: Parser[Expression] = positioned {
-    LP() ~> expression <~ RP() | funCall | values
-  }
+  def factor: Parser[Expression] = positioned { LP() ~> expression <~ RP() | read | funCall | values }
+
+  def read: Parser[Expression] = positioned { READ() ~ LP() ~ RP() ^^^ Read() }
 
   def values: Parser[Expression] = positioned {
     intValue |
       floatValue |
       stringValue |
+      boolValue |
       identifier ~ (LB() ~> intValue <~ RB()) ~ (LB() ~> intValue <~ RB()) ^^ {
         case Id(id) ~ rows ~ cols => IdMatrix(id, rows, cols)
       } |
@@ -162,6 +163,10 @@ object Parser extends Parsers {
 
   private def intValue: Parser[IntN] = positioned {
     accept("constant integer", { case VAL_INT(num) => IntN(num) })
+  }
+
+  private def boolValue: Parser[Bool] = positioned {
+    accept("true or false", { case VAL_BOOL(b) => Bool(b) })
   }
 
   private def floatValue: Parser[FloatN] = positioned {

@@ -97,6 +97,9 @@ case class Div(factor1: Expression, factor2: Expression) extends Expression
 case class Mod(factor1: Expression, factor2: Expression) extends Expression
 
 // Level 5 <FACTOR>
+// TODO modify the diagram adding read to the expression values
+case class Read() extends Expression
+
 trait Value
 
 case class IntN(num: Int) extends Expression with Value
@@ -105,7 +108,7 @@ case class FloatN(num: Float) extends Expression with Value
 
 case class Str(num: String) extends Expression with Value
 
-case class Bool(num: Boolean) extends Expression with Value
+case class Bool(bool: Boolean) extends Expression with Value
 
 case class Id(name: String) extends Expression with Value
 
