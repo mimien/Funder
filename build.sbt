@@ -1,4 +1,3 @@
-
 name := "Funder"
 
 version := "1.0"

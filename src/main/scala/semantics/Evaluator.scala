@@ -14,14 +14,10 @@ import scala.io.StdIn
   */
 object Evaluator {
 
-  case class Var(typ: Type, row: Int, column: Int, value: Option[Value])
-  case class Fun(typ: Type, varsTable: VarsTable, returnVal: Option[Expression], statements: Seq[Statement] = Seq()) // TODO if the return value is optional maybe you should modify the diagrams
-
   type VarsTable = mutable.HashMap[String, Var]
   type FunTable = mutable.HashMap[String, Fun]
-
   val functionDir: FunTable = mutable.HashMap[String, Fun]()
-
+  val quadruples: mutable.Queue[Quad] = mutable.Queue[Quad]()
 
   def defaultVarsTable: VarsTable = mutable.HashMap[String, Var]()
 
@@ -32,53 +28,68 @@ object Evaluator {
     functionDir
   }
 
-  def evaluateExpression(expr: Expression): Value = {
+  def evalExpr(expr: Expression): Value = {
+    def eval(v1: Value, v2: Value, op: (Int, Int) => Int) = {
+      (v1, v2) match {
+        case (IntN(n1), IntN(n2)) => IntN(op(n1, n2))
+        case (IntN(n1), FloatN(n2)) => FloatN(op(n1, n2))
+        case (FloatN(n1), IntN(n2)) => FloatN(op(n1, n2))
+        case (FloatN(n1), FloatN(n2)) => FloatN(op(n1, n2))
+        case (FloatN(n1), FloatN(n2)) => FloatN(op(n1, n2))
+        case _ => sys.error("Error: Arithmetic operation must be between Ints and/or floats")
+      }
+    }
+
+    def evalRel(v1: Value, v2: Value, op: (Value, Value) => Boolean) = {
+
+    }
+
     // TODO create error and stop program when not compatible operations
     expr match {
       case v: Value => v
-      case Read() => evaluateExpression(Str(StdIn.readLine()))
-      // INT, INT
-      case Sum(IntN(e1), IntN(e2)) => evaluateExpression(IntN(e1 + e2))
-      case Sub(IntN(e1), IntN(e2)) => evaluateExpression(IntN(e1 - e2))
-      case Mul(IntN(e1), IntN(e2)) => evaluateExpression(IntN(e1 * e2))
-      case Div(IntN(e1), IntN(e2)) => evaluateExpression(IntN(e1 / e2))
-      case Equals(IntN(e1), IntN(e2)) => evaluateExpression(Bool(e1 == e2))
-      case Unequals(IntN(e1), IntN(e2)) => evaluateExpression(Bool(e1 != e2))
-      case GreaterThan(IntN(e1), IntN(e2)) => evaluateExpression(Bool(e1 > e2))
-      case GreaterEquals(IntN(e1), IntN(e2)) => evaluateExpression(Bool(e1 >= e2))
-      case LessThan(IntN(e1), IntN(e2)) => evaluateExpression(Bool(e1 < e2))
-      case LessEquals(IntN(e1), IntN(e2)) => evaluateExpression(Bool(e1 <= e2))
+      case Read() => evalExpr(Str(StdIn.readLine()))
+      case Sum(e1, e2) => eval(evalExpr(e1), evalExpr(e2), _ + _)
+      case Sub(e1, e2) => eval(evalExpr(e1), evalExpr(e2), _ - _)
+      case Mul(e1, e2) => eval(evalExpr(e1), evalExpr(e2), _ * _)
+      case Div(e1, e2) => eval(evalExpr(e1), evalExpr(e2), _ / _)
+      case Mul(e1, e2) => eval(evalExpr(e1), evalExpr(e2), _ % _)
+      case Equals(e1, e2) => evalExpr(Bool(e1 == e2))
+      case Unequals(IntN(e1), IntN(e2)) => evalExpr(Bool(e1 != e2))
+      case GreaterThan(IntN(e1), IntN(e2)) => evalExpr(Bool(e1 > e2))
+      case GreaterEquals(IntN(e1), IntN(e2)) => evalExpr(Bool(e1 >= e2))
+      case LessThan(IntN(e1), IntN(e2)) => evalExpr(Bool(e1 < e2))
+      case LessEquals(IntN(e1), IntN(e2)) => evalExpr(Bool(e1 <= e2))
       // INT, FLOAT
-      case Sum(IntN(e1), FloatN(e2)) => evaluateExpression(FloatN(e1 + e2))
-      case Sub(IntN(e1), FloatN(e2)) => evaluateExpression(FloatN(e1 - e2))
-      case Mul(IntN(e1), FloatN(e2)) => evaluateExpression(FloatN(e1 * e2))
-      case Div(IntN(e1), FloatN(e2)) => evaluateExpression(FloatN(e1 / e2))
-      case Equals(IntN(e1), FloatN(e2)) => evaluateExpression(Bool(e1 == e2))
-      case Unequals(IntN(e1), FloatN(e2)) => evaluateExpression(Bool(e1 != e2))
-      case GreaterThan(IntN(e1), FloatN(e2)) => evaluateExpression(Bool(e1 > e2))
-      case GreaterEquals(IntN(e1), FloatN(e2)) => evaluateExpression(Bool(e1 >= e2))
-      case LessThan(IntN(e1), FloatN(e2)) => evaluateExpression(Bool(e1 < e2))
-      case LessEquals(IntN(e1), FloatN(e2)) => evaluateExpression(Bool(e1 <= e2))
+      case Sum(IntN(e1), FloatN(e2)) => evalExpr(FloatN(e1 + e2))
+      case Sub(IntN(e1), FloatN(e2)) => evalExpr(FloatN(e1 - e2))
+      case Mul(IntN(e1), FloatN(e2)) => evalExpr(FloatN(e1 * e2))
+      case Div(IntN(e1), FloatN(e2)) => evalExpr(FloatN(e1 / e2))
+      case Equals(IntN(e1), FloatN(e2)) => evalExpr(Bool(e1 == e2))
+      case Unequals(IntN(e1), FloatN(e2)) => evalExpr(Bool(e1 != e2))
+      case GreaterThan(IntN(e1), FloatN(e2)) => evalExpr(Bool(e1 > e2))
+      case GreaterEquals(IntN(e1), FloatN(e2)) => evalExpr(Bool(e1 >= e2))
+      case LessThan(IntN(e1), FloatN(e2)) => evalExpr(Bool(e1 < e2))
+      case LessEquals(IntN(e1), FloatN(e2)) => evalExpr(Bool(e1 <= e2))
       // FLOAT, INT
-      case Sum(FloatN(e1), IntN(e2)) => evaluateExpression(FloatN(e1 + e2))
-      case Sub(FloatN(e1), IntN(e2)) => evaluateExpression(FloatN(e1 - e2))
-      case Mul(FloatN(e1), IntN(e2)) => evaluateExpression(FloatN(e1 * e2))
-      case Div(FloatN(e1), IntN(e2)) => evaluateExpression(FloatN(e1 / e2))
-      case Equals(FloatN(e1), IntN(e2)) => evaluateExpression(Bool(e1 == e2))
-      case Unequals(FloatN(e1), IntN(e2)) => evaluateExpression(Bool(e1 != e2))
-      case GreaterThan(FloatN(e1), IntN(e2)) => evaluateExpression(Bool(e1 > e2))
-      case GreaterEquals(FloatN(e1), IntN(e2)) => evaluateExpression(Bool(e1 >= e2))
-      case LessThan(FloatN(e1), IntN(e2)) => evaluateExpression(Bool(e1 < e2))
-      case LessEquals(FloatN(e1), IntN(e2)) => evaluateExpression(Bool(e1 <= e2))
+      case Sum(FloatN(e1), IntN(e2)) => evalExpr(FloatN(e1 + e2))
+      case Sub(FloatN(e1), IntN(e2)) => evalExpr(FloatN(e1 - e2))
+      case Mul(FloatN(e1), IntN(e2)) => evalExpr(FloatN(e1 * e2))
+      case Div(FloatN(e1), IntN(e2)) => evalExpr(FloatN(e1 / e2))
+      case Equals(FloatN(e1), IntN(e2)) => evalExpr(Bool(e1 == e2))
+      case Unequals(FloatN(e1), IntN(e2)) => evalExpr(Bool(e1 != e2))
+      case GreaterThan(FloatN(e1), IntN(e2)) => evalExpr(Bool(e1 > e2))
+      case GreaterEquals(FloatN(e1), IntN(e2)) => evalExpr(Bool(e1 >= e2))
+      case LessThan(FloatN(e1), IntN(e2)) => evalExpr(Bool(e1 < e2))
+      case LessEquals(FloatN(e1), IntN(e2)) => evalExpr(Bool(e1 <= e2))
       // STRING, STRING
-      case Sum(Str(s1), Str(s2)) => evaluateExpression(Str(s1 + s2))
-      case Equals(Str(s1), Str(s2)) => evaluateExpression(Bool(s1 == s2))
-      case Unequals(Str(s1), Str(s2)) => evaluateExpression(Bool(s1 != s2))
+      case Sum(Str(s1), Str(s2)) => evalExpr(Str(s1 + s2))
+      case Equals(Str(s1), Str(s2)) => evalExpr(Bool(s1 == s2))
+      case Unequals(Str(s1), Str(s2)) => evalExpr(Bool(s1 != s2))
       // BOOL, BOOL
-      case Equals(Bool(b1), Bool(b2)) => evaluateExpression(Bool(b1 == b2))
-      case Unequals(Bool(b1), Bool(b2)) => evaluateExpression(Bool(b1 != b2))
-      case And(Bool(b1), Bool(b2)) => evaluateExpression(Bool(b1 && b2))
-      case Or(Bool(b1), Bool(b2)) => evaluateExpression(Bool(b1 || b2))
+      case Equals(Bool(b1), Bool(b2)) => evalExpr(Bool(b1 == b2))
+      case Unequals(Bool(b1), Bool(b2)) => evalExpr(Bool(b1 != b2))
+      case And(Bool(b1), Bool(b2)) => evalExpr(Bool(b1 && b2))
+      case Or(Bool(b1), Bool(b2)) => evalExpr(Bool(b1 || b2))
 
       case _ => IntN(999999999)
     }
@@ -88,10 +99,10 @@ object Evaluator {
 
     def assignVar(name: String, expression: Expression, i: Int = 0, j: Int = 0) = {
       if (varTable contains name) {
-        varTable(name) = Var(varTable(name).typ, i, j, Some(evaluateExpression(expression)))
+        varTable(name) = Var(varTable(name).typ, i, j, Some(evalExpr(expression)))
       } else if (functionDir(name).varsTable contains name) {
-        functionDir("global").varsTable(name) = Var(varTable(name).typ, i, j, Some(evaluateExpression(expression)))
-      } else println("No existe la variable")
+        functionDir("global").varsTable(name) = Var(varTable(name).typ, i, j, Some(evalExpr(expression)))
+      } else sys.error("Error: No existe la variable " + name)
     }
 
     statements.foreach {
@@ -125,7 +136,7 @@ object Evaluator {
     block match {
       case Block(vars, statements, retrn) =>
         // TODO create error and stop program when names overlap
-        if (funDir contains name) println(s"La funcion $name ya existe")
+        if (funDir contains name) sys.error(s"Error: La funcion $name ya existe")
         else funDir(name) = Fun(typ, processVariables(varsTable, vars), Some(retrn), statements)
         processStatements(funDir(name).varsTable, statements)
     }
@@ -144,7 +155,7 @@ object Evaluator {
       val head = vars.head
       head match {
         case Variable(name, typ) =>
-          if (table contains name) println(s"La variable $name ya existe ")
+          if (table contains name) println(s"La variable $name ya existe")
           else table(name) = Var(typ, 0, 0, None)
         case Array(name, typ, size) =>
           if (table contains name) println(s"La variable $name ya existe")
@@ -156,4 +167,10 @@ object Evaluator {
       processVariables(table, vars.tail)
     }
   }
+
+  case class Var(typ: Type, row: Int, column: Int, value: Option[Value])
+
+  case class Quad(operator: String, row: Int, column: Int, result: String)
+
+  case class Fun(typ: Type, varsTable: VarsTable, returnVal: Option[Expression], statements: Seq[Statement] = Seq()) // TODO if the return value is optional maybe you should modify the diagrams
 }
