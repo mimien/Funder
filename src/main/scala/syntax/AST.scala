@@ -102,6 +102,8 @@ case class Read() extends Expression
 
 trait Value
 
+trait Identifier
+
 case class IntN(num: Int) extends Expression with Value
 
 case class FloatN(num: Float) extends Expression with Value
@@ -110,10 +112,10 @@ case class Str(num: String) extends Expression with Value
 
 case class Bool(bool: Boolean) extends Expression with Value
 
-case class Id(name: String) extends Expression with Value
+case class Id(name: String) extends Expression with Identifier
 
-case class IdArray(name: String, row: Expression) extends Expression with Value
+case class IdArray(name: String, row: Expression) extends Expression with Identifier
 
-case class IdMatrix(name: String, row: Expression, column: Expression) extends Expression with Value
+case class IdMatrix(name: String, row: Expression, column: Expression) extends Expression with Identifier
 
-case class FunCall(id: String, params: Seq[Expression]) extends Expression with Value
+case class FunCall(id: String, params: Seq[Expression]) extends Expression with Identifier
