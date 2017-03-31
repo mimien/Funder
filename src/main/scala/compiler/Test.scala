@@ -18,18 +18,17 @@ object Test {
         |fun f(var number: Int, var str: String): Int
         |  var z: Bool
         |  z = true
-        |  print(number, str)
         |  return 1 + 1
         |
         |fun f2(): Int
-        |  print()
+        |  var s: String
+        |  s = "hola"
         |  return x
         |
         |main
         |  var z: Float
         |  var y: Float
-        |  z = 4 - 10 + 4 * 4
-        |  id[z + 1] = 10
+        |  z = 4 - 10 + 4 * 4.2
         |  return 0
         |""".stripMargin
     val result = Lexer(code)

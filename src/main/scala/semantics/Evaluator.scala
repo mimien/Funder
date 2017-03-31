@@ -14,82 +14,135 @@ import scala.io.StdIn
   */
 object Evaluator {
 
-  type VarsTable = mutable.HashMap[String, Var]
+  type VarTable = mutable.HashMap[String, Var]
   type FunTable = mutable.HashMap[String, Fun]
-  val functionDir: FunTable = mutable.HashMap[String, Fun]()
-  val quadruples: mutable.Queue[Quad] = mutable.Queue[Quad]()
 
-  def defaultVarsTable: VarsTable = mutable.HashMap[String, Var]()
+  val functionDirectory: FunTable = mutable.HashMap[String, Fun]()
+  val quadruples: mutable.Queue[Quad] = mutable.Queue[Quad]()
+  var tempIdNum = 0
+
+  def newVarTable: VarTable = mutable.HashMap[String, Var]()
 
   def apply(program: Program): FunTable = {
-    // Add global variables table to the function directory
-    functionDir("global") = Fun(IntType, processVariables(defaultVarsTable, program.vars), None)
+    quadruples.enqueue(Quad("goto", "", "", ""))
 
-    // Add main variables table to the function directory
-    processFunction("main", Seq(), IntType, program.main, functionDir)
+    // Add global variables table to the function directory
+    functionDirectory("global") = Fun(IntType, createVarTable(newVarTable, program.vars))
 
     // Add function variables tables to the function directory
-    program.functions.foreach(f => processFunction(f.id, f.params, f.returnTyp, f.block, functionDir))
-    functionDir
+    program.functions.foreach(f => addFunction(f.id, f.params, f.returnTyp, f.block))
+
+    // Add main variables table to the function directory
+    addFunction("main", Seq(), IntType, program.main)
+    quadruples.foreach(println)
+    functionDirectory
   }
 
-  def genQuad(expr: Expression): Value = {
-    def eval(v1: Value, v2: Value, op: (Int, Int) => Int) = {
-      (v1, v2) match {
-        case (IntN(n1), IntN(n2)) => IntN(op(n1, n2))
-        case (IntN(n1), FloatN(n2)) => FloatN(op(n1, n2))
-        case (FloatN(n1), IntN(n2)) => FloatN(op(n1, n2))
-        case (FloatN(n1), FloatN(n2)) => FloatN(op(n1, n2))
-        case (FloatN(n1), FloatN(n2)) => FloatN(op(n1, n2))
-        case _ => sys.error("Error: Arithmetic operation must be between Ints and/or floats")
+  def addQuads(funVarTable: VarTable, expr: Expression): (String, Type) = {
+
+    def arithmeticQuad(operation: String, leftOp: (String, Type), rightOp: (String, Type), result: String)
+    : (String, Type) = {
+      quadruples.enqueue(Quad(operation, leftOp._1, rightOp._1, result))
+      tempIdNum += 1
+
+      (leftOp._2, rightOp._2) match {
+        case (IntType, IntType) => (result, IntType)
+        case (IntType, FloatType) => (result, FloatType)
+        case (FloatType, IntType) => (result, FloatType)
+        case (FloatType, FloatType) => (result, FloatType)
+        case (StringType, StringType) if operation == "==" || operation == "<>" => (result, BoolType)
+        case (BoolType, BoolType) if operation == "==" || operation == "<>" => (result, BoolType)
+        case _ => sys.error("Error: Arithmetic operation $operation between ${leftOp._2} and ${rightOp._2} not permitted")
       }
     }
 
-    def evalRel(v1: Value, v2: Value, op: (Value, Value) => Boolean) = {
+    def relationalQuad(operation: String, leftOp: (String, Type), rightOp: (String, Type), result: String)
+    : (String, Type) = {
+      quadruples.enqueue(Quad(operation, leftOp._1, rightOp._1, result))
+      tempIdNum += 1
+      (leftOp._2, rightOp._2) match {
+        case (IntType, IntType) => (result, BoolType)
+        case (IntType, FloatType) => (result, BoolType)
+        case (FloatType, IntType) => (result, BoolType)
+        case (FloatType, FloatType) => (result, BoolType)
+        case (StringType, StringType) if operation == "+" => (result, BoolType)
+
+        case _ => sys.error(s"Error: Relation operation $operation between ${leftOp._2} and ${rightOp._2} not permitted")
+      }
+    }
+
+    def logicalQuad(operation: String, leftOp: (String, Type), rightOp: (String, Type), result: String)
+    : (String, Type) = {
+      quadruples.enqueue(Quad(operation, leftOp._1, rightOp._1, result))
+      tempIdNum += 1
+      (leftOp._2, rightOp._2) match {
+        case (BoolType, BoolType) => (result, BoolType)
+        case _ => sys.error(s"Error: Relation operation $operation between ${leftOp._2} and ${rightOp._2} not permitted")
+      }
     }
 
     expr match {
-      case v: Value => v
-      case Read() => genQuad(Str(StdIn.readLine()))
-      case Sum(e1, e2) => eval(genQuad(e1), genQuad(e2), _ + _)
-      case Sub(e1, e2) => eval(genQuad(e1), genQuad(e2), _ - _)
-      case Mul(e1, e2) => eval(genQuad(e1), genQuad(e2), _ * _)
-      case Div(e1, e2) => eval(genQuad(e1), genQuad(e2), _ / _)
-      case Mul(e1, e2) => eval(genQuad(e1), genQuad(e2), _ % _)
-      case Equals(e1, e2) => genQuad(Bool(e1 == e2))
-      case Unequals(IntN(e1), IntN(e2)) => genQuad(Bool(e1 != e2))
-      case GreaterThan(IntN(e1), IntN(e2)) => genQuad(Bool(e1 > e2))
-      case GreaterEquals(IntN(e1), IntN(e2)) => genQuad(Bool(e1 >= e2))
-      case LessThan(IntN(e1), IntN(e2)) => genQuad(Bool(e1 < e2))
-      case LessEquals(IntN(e1), IntN(e2)) => genQuad(Bool(e1 <= e2))
-      // STRING, STRING
-      case Sum(Str(s1), Str(s2)) => genQuad(Str(s1 + s2))
-      case Equals(Str(s1), Str(s2)) => genQuad(Bool(s1 == s2))
-      case Unequals(Str(s1), Str(s2)) => genQuad(Bool(s1 != s2))
-      // BOOL, BOOL
-      case Equals(Bool(b1), Bool(b2)) => genQuad(Bool(b1 == b2))
-      case Unequals(Bool(b1), Bool(b2)) => genQuad(Bool(b1 != b2))
-      case And(Bool(b1), Bool(b2)) => genQuad(Bool(b1 && b2))
-      case Or(Bool(b1), Bool(b2)) => genQuad(Bool(b1 || b2))
+      case IntN(num) => (num.toString, IntType)
+      case FloatN(num) => (num.toString, FloatType)
+      case Str(string) => (string, StringType)
+      case Bool(boolean) => (boolean.toString, BoolType)
+      case Id(name) =>
+        val variable = funVarTable get name
+        val globalVariable = functionDirectory("global").varTable get name
+        if (variable isDefined) (name, variable.get.typ)
+        else if (globalVariable isDefined) (name, globalVariable.get.typ)
+        else sys.error(s"Error: The variable $name doesn't exist")
 
-      case _ => IntN(999999999)
+      case IdArray(name, index) => ??? // TODO
+      case IdMatrix(name, rowIndex, colIndex) => ??? // TODO
+      case FunCall(name, params) => ??? // TODO
+      case Read() => ??? // TODO What quadruple does read make
+
+      case Sum(e1, e2) => arithmeticQuad("+", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case Sub(e1, e2) => arithmeticQuad("-", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case Mul(e1, e2) => arithmeticQuad("*", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case Div(e1, e2) => arithmeticQuad("/", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case Mod(e1, e2) => arithmeticQuad("%", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case Equals(e1, e2) => relationalQuad("==", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case Unequals(e1, e2) => relationalQuad("<>", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case GreaterThan(e1, e2) => relationalQuad("<", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case GreaterEquals(e1, e2) => relationalQuad("<=", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case LessThan(e1, e2) => relationalQuad(">", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case LessEquals(e1, e2) => relationalQuad(">=", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case And(e1, e2) => logicalQuad("and", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case Or(e1, e2) => logicalQuad("or", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+
+      case _ => sys.error("Error: BAD EXPRESSION. DON'T EXPRESS LIKE THAT.")
     }
   }
 
-  def processStatements(varTable: VarsTable, statements: Seq[Statement]): Unit = {
+  def processStatements(varTable: VarTable, statements: Seq[Statement]): Unit = {
+
+    tempIdNum = 1
 
     def assignVar(name: String, expression: Expression, i: Int = 0, j: Int = 0) = {
-      if (varTable contains name) {
-        varTable(name) = Var(varTable(name).typ, i, j, Some(genQuad(expression)))
-      } else if (functionDir(name).varsTable contains name) {
-        functionDir("global").varsTable(name) = Var(varTable(name).typ, i, j, Some(genQuad(expression)))
-      } else sys.error("Error: No existe la variable " + name)
+      val variable = varTable get name
+      val globalVariable = functionDirectory("global").varTable get name
+      if (variable isDefined) {
+        val evaluatedExpr = addQuads(varTable, expression)
+        if (evaluatedExpr._2 == variable.get.typ) quadruples.enqueue(Quad("=", evaluatedExpr._1, "", name))
+        else sys.error("Error: Expression assignnment of variable " + name + " doesn't match expected type")
+      }
+      else if (globalVariable isDefined) {
+        val evaluatedExpr = addQuads(varTable, expression)
+        if (evaluatedExpr._2 == globalVariable.get.typ) quadruples.enqueue(Quad("=", evaluatedExpr._1, "", name))
+        else sys.error("Error: Expression assignnment of variable " + name + "doesn't match expected type")
+      }
+      else sys.error("Error: Variable " + name + "doesn't exist in this scope")
     }
 
     statements.foreach {
       case Assignment(name, expr) => assignVar(name, expr)
       case AssignArray(name, IntN(index), expr) => assignVar(name, expr, index)
       case AssignMatrix(name, IntN(row), IntN(col), expr) => assignVar(name, expr, row, col)
+      case FunctionCall(name, params) =>
+        val function = functionDirectory(name)
+
       //      case IfThen(expr, block) => evaluateExpression(expr) match {
       //        case Bool(true) =>
       //        case Bool(false) =>
@@ -104,53 +157,58 @@ object Evaluator {
   }
 
   /**
-    * Add function to the mutable function directory
+    * Link function data to the mutable function directory and process block statements for making quadruples
     *
-    * @param name   name of the function
-    * @param params parameters of the function
-    * @param typ    return type of the function
-    * @param block  block of the function
-    * @param funDir function directory
+    * @param  name    name of the function
+    * @param  params  parameters of the function
+    * @param  typ     return type of the function
+    * @param  block   block of the function
     */
-  def processFunction(name: String, params: Seq[Vars], typ: Type, block: Block, funDir: FunTable) {
-    val varsTable = processVariables(defaultVarsTable, params)
+  def addFunction(name: String, params: Seq[Vars], typ: Type, block: Block) {
+    val varTable = createVarTable(newVarTable, params)
     block match {
       case Block(vars, statements, retrn) =>
-        if (funDir contains name) sys.error(s"Error: La funcion $name ya existe")
-        else funDir(name) = Fun(typ, processVariables(varsTable, vars), Some(retrn), statements)
-        processStatements(funDir(name).varsTable, statements)
+        if (functionDirectory contains name) sys.error(s"Error: Function $name already defined")
+        else {
+          functionDirectory(name) = Fun(typ, createVarTable(varTable, vars), statements)
+          processStatements(functionDirectory(name).varTable, statements)
+        }
     }
   }
 
   /**
     * Adds variables to the variable table
     *
-    * @param table The variable table which belongs a function scope
-    * @param vars  variables of type Variable which belongs a function scope
-    * @return The variable table with the variables added
+    * @param  table   The variable table that belongs a function scope
+    * @param  vars    variables of type Variable which belongs a function scope
+    * @return   The variable table with the variables added
     */
-  def processVariables(table: VarsTable, vars: Seq[Vars]): VarsTable = {
+  private def createVarTable(table: VarTable, vars: Seq[Vars]): VarTable = {
     if (vars.isEmpty) table
     else {
       val head = vars.head
       head match {
         case Variable(name, typ) =>
-          if (table contains name) sys.error(s"La variable $name ya existe")
-          else table(name) = Var(typ, 0, 0, None)
+          if (table contains name) sys.error(s"Error: Variable $name already defined")
+          else table(name) = Var(typ, 0, 0)
         case Array(name, typ, size) =>
-          if (table contains name) sys.error(s"La variable $name ya existe")
-          else table(name) = Var(typ, size, 0, None)
+          if (table contains name) sys.error(s"Error: Variable $name already defined")
+          else table(name) = Var(typ, size, 0)
         case Matrix(name, typ, row, col) =>
-          if (table contains name) sys.error(s"La variable $name ya existe")
-          else table(name) = Var(typ, row, col, None)
+          if (table contains name) sys.error(s"Error: Variable $name already defined")
+          else table(name) = Var(typ, row, col)
       }
-      processVariables(table, vars.tail)
+      createVarTable(table, vars.tail)
     }
   }
 
-  case class Var(typ: Type, row: Int, column: Int, value: Option[Value])
+  case class Var(typ: Type, row: Int, column: Int)
 
-  case class Quad(operator: String, row: Int, column: Int, result: String)
+  case class Expr(expression: Expression, typ: Type)
 
-  case class Fun(typ: Type, varsTable: VarsTable, returnVal: Option[Expression], statements: Seq[Statement] = Seq()) // TODO if the return value is optional maybe you should modify the diagrams
+  case class Quad(operator: String, left: String, right: String, result: String) {
+    override def toString: String = operator + " " + left + " " + right + " " + result
+  }
+
+  case class Fun(typ: Type, varTable: VarTable, statements: Seq[Statement] = Seq())
 }

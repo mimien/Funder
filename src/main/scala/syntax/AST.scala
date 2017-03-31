@@ -100,22 +100,18 @@ case class Mod(factor1: Expression, factor2: Expression) extends Expression
 // TODO modify the diagram adding read to the expression values
 case class Read() extends Expression
 
-trait Value
+case class IntN(num: Int) extends Expression
 
-trait Identifier
+case class FloatN(num: Float) extends Expression
 
-case class IntN(num: Int) extends Expression with Value
+case class Str(num: String) extends Expression
 
-case class FloatN(num: Float) extends Expression with Value
+case class Bool(bool: Boolean) extends Expression
 
-case class Str(num: String) extends Expression with Value
+case class Id(name: String) extends Expression
 
-case class Bool(bool: Boolean) extends Expression with Value
+case class IdArray(name: String, row: Expression) extends Expression
 
-case class Id(name: String) extends Expression with Identifier
+case class IdMatrix(name: String, row: Expression, column: Expression) extends Expression
 
-case class IdArray(name: String, row: Expression) extends Expression with Identifier
-
-case class IdMatrix(name: String, row: Expression, column: Expression) extends Expression with Identifier
-
-case class FunCall(id: String, params: Seq[Expression]) extends Expression with Identifier
+case class FunCall(id: String, params: Seq[Expression]) extends Expression
