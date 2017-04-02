@@ -142,7 +142,11 @@ case class SCALE() extends Token
 
 case class SET_COLOR() extends Token
 
-case class READ() extends Token
+case class READ_STRING() extends Token
+
+case class READ_INT() extends Token
+
+case class READ_FLOAT() extends Token
 
 case class WRITE() extends Token
 

@@ -24,17 +24,20 @@ object Evaluator {
   def newVarTable: VarTable = mutable.HashMap[String, Var]()
 
   def apply(program: Program): FunTable = {
-    quadruples.enqueue(Quad("goto", "", "", ""))
+    quadruples.enqueue(Quad("", "", "", ""))
 
     // Add global variables table to the function directory
     functionDirectory("global") = Fun(IntType, createVarTable(newVarTable, program.vars))
 
     // Add function variables tables to the function directory
     program.functions.foreach(f => addFunction(f.id, f.params, f.returnTyp, f.block))
+    quadruples.update(0, Quad("goto", (quadruples.length + 1).toString, "", ""))
 
     // Add main variables table to the function directory
     addFunction("main", Seq(), IntType, program.main)
-    quadruples.foreach(println)
+    for (i <- quadruples.indices) {
+      println(f"${i + 1}%2s${quadruples(i)}")
+    }
     functionDirectory
   }
 
@@ -50,9 +53,9 @@ object Evaluator {
         case (IntType, FloatType) => (result, FloatType)
         case (FloatType, IntType) => (result, FloatType)
         case (FloatType, FloatType) => (result, FloatType)
-        case (StringType, StringType) if operation == "==" || operation == "<>" => (result, BoolType)
-        case (BoolType, BoolType) if operation == "==" || operation == "<>" => (result, BoolType)
-        case _ => sys.error("Error: Arithmetic operation $operation between ${leftOp._2} and ${rightOp._2} not permitted")
+        case (StringType, StringType) if operation == "+" => (result, StringType)
+        case _ => sys.error("Error: Arithmetic operation " + operation + " between " + leftOp._2 + " and " + rightOp._2
+          + " not permitted")
       }
     }
 
@@ -65,9 +68,10 @@ object Evaluator {
         case (IntType, FloatType) => (result, BoolType)
         case (FloatType, IntType) => (result, BoolType)
         case (FloatType, FloatType) => (result, BoolType)
-        case (StringType, StringType) if operation == "+" => (result, BoolType)
-
-        case _ => sys.error(s"Error: Relation operation $operation between ${leftOp._2} and ${rightOp._2} not permitted")
+        case (StringType, StringType) if operation == "==" || operation == "<>" => (result, BoolType)
+        case (BoolType, BoolType) if operation == "==" || operation == "<>" => (result, BoolType)
+        case _ => sys.error("Error: Relation operation " + operation + " between " + leftOp._2 + " and " + rightOp._2
+          + " not permitted")
       }
     }
 
@@ -77,7 +81,8 @@ object Evaluator {
       tempIdNum += 1
       (leftOp._2, rightOp._2) match {
         case (BoolType, BoolType) => (result, BoolType)
-        case _ => sys.error(s"Error: Relation operation $operation between ${leftOp._2} and ${rightOp._2} not permitted")
+        case _ => sys.error("Error: Logical operation " + operation + " between " + leftOp._2 + " and " + rightOp._2
+          + " not permitted")
       }
     }
 
@@ -96,8 +101,9 @@ object Evaluator {
       case IdArray(name, index) => ??? // TODO
       case IdMatrix(name, rowIndex, colIndex) => ??? // TODO
       case FunCall(name, params) => ??? // TODO
-      case Read() => ??? // TODO What quadruple does read make
-
+      case ReadString() => ("readStr", StringType)
+      case ReadInt() => ("readInt", IntType)
+      case ReadFloat() => ("readFloat", FloatType)
       case Sum(e1, e2) => arithmeticQuad("+", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
       case Sub(e1, e2) => arithmeticQuad("-", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
       case Mul(e1, e2) => arithmeticQuad("*", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
@@ -143,16 +149,45 @@ object Evaluator {
       case FunctionCall(name, params) =>
         val function = functionDirectory(name)
 
-      //      case IfThen(expr, block) => evaluateExpression(expr) match {
-      //        case Bool(true) =>
-      //        case Bool(false) =>
-      //        case _ =>
-      //      }
-      //      case FunctionCall(id, params) => id match {
-      //        case "write" =>
-      //      }
-      //    }
-      case _ => IntN(-999999999)
+      case IfThen(expr, block) =>
+        val evaluatedExpr = addQuads(varTable, expr)
+        if (evaluatedExpr._2 == BoolType) {
+          val gotofLine = quadruples.length
+          quadruples.enqueue(Quad("", "", "", ""))
+          processStatements(varTable, block.statements)
+          quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 1).toString))
+        }
+        else sys.error("ERROR: If condition must contain a boolean expression")
+      case IfThenElse(expr, blockOne, blockTwo) =>
+        val evaluatedExpr = addQuads(varTable, expr)
+        if (evaluatedExpr._2 == BoolType) {
+          val gotofLine = quadruples.length
+          quadruples.enqueue(Quad("", "", "", ""))
+          processStatements(varTable, blockOne.statements)
+          quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 2).toString))
+          val gotoLine = quadruples.length
+          quadruples.enqueue(Quad("", "", "", ""))
+          processStatements(varTable, blockTwo.statements)
+          quadruples.update(gotoLine, Quad("goto", "", "", (quadruples.length + 1).toString))
+        }
+        else sys.error("ERROR: If condition must contain a boolean expression")
+      case WhileDo(expr, block) =>
+        val evaluatedExpr = addQuads(varTable, expr)
+        if (evaluatedExpr._2 == BoolType) {
+          val gotofLine = quadruples.length
+          quadruples.enqueue(Quad("", "", "", ""))
+          processStatements(varTable, block.statements)
+          quadruples.enqueue(Quad("goto", "", "", (gotofLine + 1).toString))
+          quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 1).toString))
+        }
+        else sys.error("ERROR: While condition must contain a boolean expression")
+
+      //case FunctionCall(id, params) =>
+      case Write(expr) =>
+        val evaluatedExpr = addQuads(varTable, expr)
+        quadruples.enqueue(Quad("write", evaluatedExpr._1, "", ""))
+
+      case _ => sys.error("ERROR STATEMENT")
     }
   }
 
@@ -172,7 +207,9 @@ object Evaluator {
         else {
           functionDirectory(name) = Fun(typ, createVarTable(varTable, vars), statements)
           processStatements(functionDirectory(name).varTable, statements)
-        }
+          val retrnExpr = addQuads(varTable, retrn)
+          if (retrnExpr._2 == typ) quadruples.enqueue(Quad("RETURN", retrnExpr._1, "", ""))
+          else sys.error("Error: return expression of type " + retrnExpr._2 + " doesn't match function type")        }
     }
   }
 
@@ -207,7 +244,7 @@ object Evaluator {
   case class Expr(expression: Expression, typ: Type)
 
   case class Quad(operator: String, left: String, right: String, result: String) {
-    override def toString: String = operator + " " + left + " " + right + " " + result
+    override def toString: String = f"|$operator%8s|$left%8s|$right%8s|$result%8s|"
   }
 
   case class Fun(typ: Type, varTable: VarTable, statements: Seq[Statement] = Seq())

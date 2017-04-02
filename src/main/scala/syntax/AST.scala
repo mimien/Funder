@@ -64,6 +64,8 @@ case class WhileDo(expr: Expression, block: ConditionBlock) extends Statement
 
 case class FunctionCall(id: String, params: Seq[Expression]) extends Statement
 
+case class Write(expr: Expression) extends Statement
+
 sealed trait Expression extends Positional
 
 // Level 1 <EXPRESSION>
@@ -98,7 +100,11 @@ case class Mod(factor1: Expression, factor2: Expression) extends Expression
 
 // Level 5 <FACTOR>
 // TODO modify the diagram adding read to the expression values
-case class Read() extends Expression
+case class ReadString() extends Expression
+
+case class ReadInt() extends Expression
+
+case class ReadFloat() extends Expression
 
 case class IntN(num: Int) extends Expression
 

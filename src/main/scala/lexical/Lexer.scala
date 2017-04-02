@@ -175,7 +175,11 @@ object Lexer extends RegexParsers {
 
   def setColor: Parser[SET_COLOR] = positioned { "setColor" ^^ (_ => SET_COLOR()) }
 
-  def read: Parser[READ] = positioned { "read" ^^ (_ => READ()) }
+  def readString: Parser[READ_STRING] = positioned { "readString" ^^ (_ => READ_STRING()) }
+
+  def readInt: Parser[READ_INT] = positioned { "readInt" ^^ (_ => READ_INT()) }
+
+  def readFloat: Parser[READ_FLOAT] = positioned { "readFloat" ^^ (_ => READ_FLOAT()) }
 
   def write: Parser[WRITE] = positioned { "write" ^^ (_ => WRITE()) }
 
@@ -189,8 +193,8 @@ object Lexer extends RegexParsers {
       | rightParent | leftBracket | rightBracket | comma | colon | variable | array | matrix | function
       | ifCondition | then | whileLoop | doLoop | elseCondition | and | or /*| black | darkGray | lightGray*/
       /*| blue | green | yellow | red | orange */| main /*| createOval | createRectangle | createArc | createLine*/
-      /*| moveX | moveY | setStroke | scale | setColor | draw*/ | write | read | retrn | valString | valFloat
-      | valInt | valBool | indentation | identifier)) ^^ { rawTokens =>
+      /*| moveX | moveY | setStroke | scale | setColor | draw*/ | write | readString |readInt |readFloat | retrn
+      | valString | valFloat | valInt | valBool | indentation | identifier)) ^^ { rawTokens =>
       processIndentations(rawTokens)
     }
   }

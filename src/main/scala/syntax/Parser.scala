@@ -51,9 +51,12 @@ object Parser extends Parsers {
   }
 
   def statement: Parser[Statement] = positioned {
-    assignment | ifThen | whileDo | functionCall
+    assignment | ifThen | whileDo | functions | functionCall
   }
 
+  def functions: Parser[Statement] = positioned {
+    WRITE() ~> (LP() ~> expression <~ RP()) ^^ Write
+  }
   def assignment: Parser[Statement] = positioned {
     identifier ~ ((LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()).?).? ~ ASSIGN() ~ expression ^^ {
       case Id(id) ~ None ~ _ ~ expr => Assignment(id, expr)
@@ -117,7 +120,11 @@ object Parser extends Parsers {
 
   def factor: Parser[Expression] = positioned { LP() ~> expression <~ RP() | read | funCall | values }
 
-  def read: Parser[Expression] = positioned { READ() ~ LP() ~ RP() ^^^ Read() }
+  def read: Parser[Expression] = positioned {
+    READ_STRING() ~ LP() ~ RP() ^^^ ReadString() |
+    READ_INT() ~ LP() ~ RP()    ^^^ ReadInt() |
+    READ_FLOAT() ~ LP() ~ RP()  ^^^ ReadFloat()
+  }
 
   def values: Parser[Expression] = positioned {
     intValue |

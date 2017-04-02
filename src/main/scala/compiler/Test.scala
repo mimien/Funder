@@ -18,17 +18,30 @@ object Test {
         |fun f(var number: Int, var str: String): Int
         |  var z: Bool
         |  z = true
+        |  if z then
+        |    write("hola")
         |  return 1 + 1
         |
-        |fun f2(): Int
+        |fun f2(): String
         |  var s: String
-        |  s = "hola"
-        |  return x
+        |  var i: Int
+        |  i = 0
+        |  while i <> 3 do
+        |    s = readString()
+        |    s = s + " mundo"
+        |    i = i + 1
+        |  write("fin")
+        |  return s
         |
         |main
         |  var z: Float
-        |  var y: Float
         |  z = 4 - 10 + 4 * 4.2
+        |  if z > 20 then
+        |    z = z + 1
+        |    write((z + 2) / 10)
+        |  else
+        |    write("z " + "mal")
+        |    write("z < 20")
         |  return 0
         |""".stripMargin
     val result = Lexer(code)
