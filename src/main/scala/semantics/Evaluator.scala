@@ -3,6 +3,7 @@ package semantics
 import lexical.Lexer
 import syntax._
 
+import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.io.StdIn
 
@@ -14,20 +15,20 @@ import scala.io.StdIn
   */
 object Evaluator {
 
-  type VarTable = mutable.HashMap[String, Var]
+  type VarTable = HashMap[String, Var]
   type FunTable = mutable.HashMap[String, Fun]
 
   val functionDirectory: FunTable = mutable.HashMap[String, Fun]()
   val quadruples: mutable.Queue[Quad] = mutable.Queue[Quad]()
   var tempIdNum = 0
 
-  def newVarTable: VarTable = mutable.HashMap[String, Var]()
+  def newVarTable: VarTable = HashMap[String, Var]()
 
   def apply(program: Program): FunTable = {
     quadruples.enqueue(Quad("", "", "", ""))
 
     // Add global variables table to the function directory
-    functionDirectory("global") = Fun(IntType, createVarTable(newVarTable, program.vars))
+    functionDirectory("global") = Fun(IntType, newVarTable, createVarTable(newVarTable, program.vars))
 
     // Add function variables tables to the function directory
     program.functions.foreach(f => addFunction(f.id, f.params, f.returnTyp, f.block))
@@ -35,6 +36,8 @@ object Evaluator {
 
     // Add main variables table to the function directory
     addFunction("main", Seq(), IntType, program.main)
+
+    // Print quadruples
     for (i <- quadruples.indices) {
       println(f"${i + 1}%2s${quadruples(i)}")
     }
@@ -93,7 +96,7 @@ object Evaluator {
       case Bool(boolean) => (boolean.toString, BoolType)
       case Id(name) =>
         val variable = funVarTable get name
-        val globalVariable = functionDirectory("global").varTable get name
+        val globalVariable = functionDirectory("global").variables get name
         if (variable isDefined) (name, variable.get.typ)
         else if (globalVariable isDefined) (name, globalVariable.get.typ)
         else sys.error(s"Error: The variable $name doesn't exist")
@@ -128,7 +131,7 @@ object Evaluator {
 
     def assignVar(name: String, expression: Expression, i: Int = 0, j: Int = 0) = {
       val variable = varTable get name
-      val globalVariable = functionDirectory("global").varTable get name
+      val globalVariable = functionDirectory("global").variables get name
       if (variable isDefined) {
         val evaluatedExpr = addQuads(varTable, expression)
         if (evaluatedExpr._2 == variable.get.typ) quadruples.enqueue(Quad("=", evaluatedExpr._1, "", name))
@@ -139,7 +142,7 @@ object Evaluator {
         if (evaluatedExpr._2 == globalVariable.get.typ) quadruples.enqueue(Quad("=", evaluatedExpr._1, "", name))
         else sys.error("Error: Expression assignnment of variable " + name + "doesn't match expected type")
       }
-      else sys.error("Error: Variable " + name + "doesn't exist in this scope")
+      else sys.error("Error: Variable " + name + " doesn't exist in this scope")
     }
 
     statements.foreach {
@@ -182,7 +185,15 @@ object Evaluator {
         }
         else sys.error("ERROR: While condition must contain a boolean expression")
 
-      //case FunctionCall(id, params) =>
+      case FunctionCall(name, params) =>
+        if (functionDirectory contains name) {
+          quadruples.enqueue(Quad("era", name, "", ""))
+          for (i <- params.indices) {
+            params(i)
+            quadruples.enqueue(Quad("param", "", "", "param" + (i + 1)))
+          }
+        }
+        else sys.error("ERROR: Function " + name + " is not defined")
       case Write(expr) =>
         val evaluatedExpr = addQuads(varTable, expr)
         quadruples.enqueue(Quad("write", evaluatedExpr._1, "", ""))
@@ -200,16 +211,18 @@ object Evaluator {
     * @param  block   block of the function
     */
   def addFunction(name: String, params: Seq[Vars], typ: Type, block: Block) {
-    val varTable = createVarTable(newVarTable, params)
     block match {
       case Block(vars, statements, retrn) =>
         if (functionDirectory contains name) sys.error(s"Error: Function $name already defined")
         else {
-          functionDirectory(name) = Fun(typ, createVarTable(varTable, vars), statements)
-          processStatements(functionDirectory(name).varTable, statements)
-          val retrnExpr = addQuads(varTable, retrn)
-          if (retrnExpr._2 == typ) quadruples.enqueue(Quad("RETURN", retrnExpr._1, "", ""))
-          else sys.error("Error: return expression of type " + retrnExpr._2 + " doesn't match function type")        }
+          val functionParams = createVarTable(newVarTable, params)
+          val functionVariables = createVarTable(functionParams, vars)
+          functionDirectory(name) = Fun(typ, functionParams, functionVariables, statements)
+          processStatements(functionVariables, statements)
+          val returnExpr = addQuads(functionVariables, retrn)
+          if (returnExpr._2 == typ) quadruples.enqueue(Quad("RETURN", returnExpr._1, "", ""))
+          else sys.error("Error: return expression of type " + returnExpr._2 + " doesn't match function type")
+        }
     }
   }
 
@@ -223,19 +236,18 @@ object Evaluator {
   private def createVarTable(table: VarTable, vars: Seq[Vars]): VarTable = {
     if (vars.isEmpty) table
     else {
-      val head = vars.head
-      head match {
+      vars.head match {
+          // TODO Change contains name for isDefined implementation
         case Variable(name, typ) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else table(name) = Var(typ, 0, 0)
+          else createVarTable(table + (name -> Var(typ, 0, 0)), vars.tail)
         case Array(name, typ, size) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else table(name) = Var(typ, size, 0)
+          else createVarTable(table + (name -> Var(typ, size, 0)), vars.tail)
         case Matrix(name, typ, row, col) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else table(name) = Var(typ, row, col)
+          else createVarTable(table + (name -> Var(typ, row, col)), vars.tail)
       }
-      createVarTable(table, vars.tail)
     }
   }
 
@@ -247,5 +259,5 @@ object Evaluator {
     override def toString: String = f"|$operator%8s|$left%8s|$right%8s|$result%8s|"
   }
 
-  case class Fun(typ: Type, varTable: VarTable, statements: Seq[Statement] = Seq())
+  case class Fun(typ: Type, params: VarTable, variables: VarTable, statements: Seq[Statement] = Seq())
 }
