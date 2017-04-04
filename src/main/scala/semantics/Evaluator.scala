@@ -28,7 +28,7 @@ object Evaluator {
     quadruples.enqueue(Quad("", "", "", ""))
 
     // Add global variables table to the function directory
-    functionDirectory("global") = Fun(IntType, newVarTable, createVarTable(newVarTable, program.vars))
+    functionDirectory("global") = Fun(IntType, Seq(), createVarTable(newVarTable, program.vars))
 
     // Add function variables tables to the function directory
     program.functions.foreach(f => addFunction(f.id, f.params, f.returnTyp, f.block))
@@ -125,9 +125,11 @@ object Evaluator {
     }
   }
 
-  def processStatements(varTable: VarTable, statements: Seq[Statement]): Unit = {
+  def processStatements(funName: String, statements: Seq[Statement]): Unit = {
 
     tempIdNum = 1
+
+    val varTable = functionDirectory(funName).variables
 
     def assignVar(name: String, expression: Expression, i: Int = 0, j: Int = 0) = {
       val variable = varTable get name
@@ -149,15 +151,13 @@ object Evaluator {
       case Assignment(name, expr) => assignVar(name, expr)
       case AssignArray(name, IntN(index), expr) => assignVar(name, expr, index)
       case AssignMatrix(name, IntN(row), IntN(col), expr) => assignVar(name, expr, row, col)
-      case FunctionCall(name, params) =>
-        val function = functionDirectory(name)
 
       case IfThen(expr, block) =>
         val evaluatedExpr = addQuads(varTable, expr)
         if (evaluatedExpr._2 == BoolType) {
           val gotofLine = quadruples.length
           quadruples.enqueue(Quad("", "", "", ""))
-          processStatements(varTable, block.statements)
+          processStatements(funName, block.statements)
           quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 1).toString))
         }
         else sys.error("ERROR: If condition must contain a boolean expression")
@@ -166,11 +166,11 @@ object Evaluator {
         if (evaluatedExpr._2 == BoolType) {
           val gotofLine = quadruples.length
           quadruples.enqueue(Quad("", "", "", ""))
-          processStatements(varTable, blockOne.statements)
+          processStatements(funName, blockOne.statements)
           quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 2).toString))
           val gotoLine = quadruples.length
           quadruples.enqueue(Quad("", "", "", ""))
-          processStatements(varTable, blockTwo.statements)
+          processStatements(funName, blockTwo.statements)
           quadruples.update(gotoLine, Quad("goto", "", "", (quadruples.length + 1).toString))
         }
         else sys.error("ERROR: If condition must contain a boolean expression")
@@ -179,19 +179,26 @@ object Evaluator {
         if (evaluatedExpr._2 == BoolType) {
           val gotofLine = quadruples.length
           quadruples.enqueue(Quad("", "", "", ""))
-          processStatements(varTable, block.statements)
+          processStatements(funName, block.statements)
           quadruples.enqueue(Quad("goto", "", "", (gotofLine + 1).toString))
           quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 1).toString))
         }
         else sys.error("ERROR: While condition must contain a boolean expression")
-
       case FunctionCall(name, params) =>
         if (functionDirectory contains name) {
-          quadruples.enqueue(Quad("era", name, "", ""))
-          for (i <- params.indices) {
-            params(i)
-            quadruples.enqueue(Quad("param", "", "", "param" + (i + 1)))
+          val paramsTypes = functionDirectory(name).paramsTypes
+          if (params.length == paramsTypes.length) {
+            quadruples.enqueue(Quad("era", name, "", ""))
+            for (i <- params.indices) {
+              val evaluatedExpr = addQuads(varTable, params(i))
+              if (evaluatedExpr._2 == paramsTypes(i)) {
+                quadruples.enqueue(Quad("param", evaluatedExpr._1.toString, "", "param" + (i + 1)))
+              }
+              else sys.error("ERROR: Type mismatch on function call " + name )
+            }
+            quadruples.enqueue(Quad("gosub", name, "", ""))
           }
+          else sys.error("ERROR: Incorrect number of parameters in function call " + name )
         }
         else sys.error("ERROR: Function " + name + " is not defined")
       case Write(expr) =>
@@ -215,11 +222,15 @@ object Evaluator {
       case Block(vars, statements, retrn) =>
         if (functionDirectory contains name) sys.error(s"Error: Function $name already defined")
         else {
-          val functionParams = createVarTable(newVarTable, params)
-          val functionVariables = createVarTable(functionParams, vars)
-          functionDirectory(name) = Fun(typ, functionParams, functionVariables, statements)
-          processStatements(functionVariables, statements)
-          val returnExpr = addQuads(functionVariables, retrn)
+          val funParamsTypes = params.map(_.getType)
+          val funVarTable = createVarTable(createVarTable(newVarTable, params), vars)
+          functionDirectory(name) = Fun(typ, funParamsTypes, funVarTable, statements, quadruples.length + 1)
+
+          // make quadruples
+          processStatements(name, statements)
+
+          // make return quadruple
+          val returnExpr = addQuads(funVarTable, retrn)
           if (returnExpr._2 == typ) quadruples.enqueue(Quad("RETURN", returnExpr._1, "", ""))
           else sys.error("Error: return expression of type " + returnExpr._2 + " doesn't match function type")
         }
@@ -237,7 +248,7 @@ object Evaluator {
     if (vars.isEmpty) table
     else {
       vars.head match {
-          // TODO Change contains name for isDefined implementation
+        // TODO Change contains name for isDefined implementation
         case Variable(name, typ) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
           else createVarTable(table + (name -> Var(typ, 0, 0)), vars.tail)
@@ -259,5 +270,7 @@ object Evaluator {
     override def toString: String = f"|$operator%8s|$left%8s|$right%8s|$result%8s|"
   }
 
-  case class Fun(typ: Type, params: VarTable, variables: VarTable, statements: Seq[Statement] = Seq())
+  case class Fun(typ: Type, paramsTypes: Seq[Type], variables: VarTable, statements: Seq[Statement] = Seq(),
+                 starts: Int = 0)
+
 }

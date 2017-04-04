@@ -30,7 +30,7 @@ object Test {
         |    s = readString()
         |    s = s + " mundo"
         |    i = i + 1
-        |  write("fin")
+        |  f(1, "mimo")
         |  return s
         |
         |main
@@ -41,7 +41,7 @@ object Test {
         |    write((z + 2) / 10)
         |  else
         |    write("z " + "mal")
-        |    write("z < 20")
+        |    write(z < 20)
         |  return 0
         |""".stripMargin
     val result = Lexer(code)

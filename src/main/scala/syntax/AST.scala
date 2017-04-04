@@ -20,13 +20,21 @@ case class Block(vars: Seq[Vars], statements: Seq[Statement], retrn: Expression)
 case class ConditionBlock(statements: Seq[Statement]) extends AST
 
 
-sealed trait Vars extends Positional
+sealed trait Vars extends Positional {
+  def getType: Type
+}
 
-case class Variable(name: String, typ: Type) extends Vars
+case class Variable(name: String, typ: Type) extends Vars {
+  override def getType: Type = typ
+}
 
-case class Array(name: String, typ: Type, size: Int) extends Vars
+case class Array(name: String, typ: Type, size: Int) extends Vars {
+  override def getType: Type = typ
+}
 
-case class Matrix(name: String, typ: Type, numOfRows: Int, numOfColumns: Int) extends Vars
+case class Matrix(name: String, typ: Type, numOfRows: Int, numOfColumns: Int) extends Vars {
+  override def getType: Type = typ
+}
 
 
 sealed trait Type extends Positional
