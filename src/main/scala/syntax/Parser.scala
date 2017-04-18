@@ -104,7 +104,7 @@ object Parser extends Parsers {
       case expr1 ~ Some(GREATER_EQUALS() ~ expr2) => GreaterEquals(expr1, expr2)
       case expr1 ~ Some(LESS_THAN() ~ expr2) => LessThan(expr1, expr2)
       case expr1 ~ Some(LESS_EQUALS() ~ expr2) => LessEquals(expr1, expr2)
-      case expr1 ~ Some(NOT_EQUALS() ~ expr2) => Unequals(expr1, expr2)
+      case expr1 ~ Some(NOT_EQUALS() ~ expr2) => NotEquals(expr1, expr2)
       case expr1 ~ Some(EQUALS() ~ expr2) => Equals(expr1, expr2)
       case expr ~ Some(_) => expr
     }

@@ -1,6 +1,7 @@
 package semantics
 
 import lexical.Lexer
+import semantics.Memory.{FunDirectory, VarTable}
 import syntax._
 
 import scala.collection.immutable.HashMap
@@ -15,111 +16,107 @@ import scala.io.StdIn
   */
 object Evaluator {
 
-  type VarTable = HashMap[String, Var]
-  type FunTable = mutable.HashMap[String, Fun]
+  val ADR = Memory.Addresses
+  val MEM = Memory
 
-  val functionDirectory: FunTable = mutable.HashMap[String, Fun]()
-  val quadruples: mutable.Queue[Quad] = mutable.Queue[Quad]()
-  var tempIdNum = 0
-
-  def newVarTable: VarTable = HashMap[String, Var]()
-
-  def apply(program: Program): FunTable = {
-    quadruples.enqueue(Quad("", "", "", ""))
+  def apply(program: Program): FunDirectory = {
+    MEM.quadruples.enqueue((-1, -1, -1, -1))
 
     // Add global variables table to the function directory
-    functionDirectory("global") = Fun(IntType, Seq(), createVarTable(newVarTable, program.vars))
+    MEM.functionDirectory("global") = Memory.Fun(IntType, Seq(), createVarTable(MEM.VarTable(), program.vars))
 
     // Add function variables tables to the function directory
     program.functions.foreach(f => addFunction(f.id, f.params, f.returnTyp, f.block))
-    quadruples.update(0, Quad("goto", (quadruples.length + 1).toString, "", ""))
+    MEM.quadruples.update(0, (ADR.goto, MEM.quadruples.length + 1, -1, -1))
 
     // Add main variables table to the function directory
     addFunction("main", Seq(), IntType, program.main)
 
     // Print quadruples
-    for (i <- quadruples.indices) {
-      println(f"${i + 1}%2s${quadruples(i)}")
+    for (i <- MEM.quadruples.indices) {
+      println(f"${i + 1}%2s${MEM.quadruples(i)}")
     }
-    functionDirectory
+    MEM.functionDirectory
   }
 
-  def addQuads(funVarTable: VarTable, expr: Expression): (String, Type) = {
+  def addQuads(funVarTable: VarTable, expr: Expression): (Int, Type) = {
 
-    def arithmeticQuad(operation: String, leftOp: (String, Type), rightOp: (String, Type), result: String)
-    : (String, Type) = {
-      quadruples.enqueue(Quad(operation, leftOp._1, rightOp._1, result))
-      tempIdNum += 1
-
+    def arithmeticQuad(operation: Int, leftOp: (Int, Type), rightOp: (Int, Type)) = {
       (leftOp._2, rightOp._2) match {
-        case (IntType, IntType) => (result, IntType)
-        case (IntType, FloatType) => (result, FloatType)
-        case (FloatType, IntType) => (result, FloatType)
-        case (FloatType, FloatType) => (result, FloatType)
-        case (StringType, StringType) if operation == "+" => (result, StringType)
+        case (IntType, IntType) =>
+          val result = ADR.addTempInt()
+          MEM.quadruples.enqueue((operation, leftOp._1, rightOp._1, result))
+          (result, IntType)
+        case (IntType, FloatType) | (FloatType, IntType) | (FloatType, FloatType) =>
+          val result = ADR.addTempFloat()
+          MEM.quadruples.enqueue((operation, leftOp._1, rightOp._1, result))
+          (result, FloatType)
+        case (StringType, StringType) if operation == ADR.sum =>
+          val result = ADR.addTempString()
+          MEM.quadruples.enqueue((operation, leftOp._1, rightOp._1, result))
+          (result, StringType)
         case _ => sys.error("Error: Arithmetic operation " + operation + " between " + leftOp._2 + " and " + rightOp._2
           + " not permitted")
       }
     }
 
-    def relationalQuad(operation: String, leftOp: (String, Type), rightOp: (String, Type), result: String)
-    : (String, Type) = {
-      quadruples.enqueue(Quad(operation, leftOp._1, rightOp._1, result))
-      tempIdNum += 1
+    def relationalQuad(operation: Int, leftOp: (Int, Type), rightOp: (Int, Type)) = {
       (leftOp._2, rightOp._2) match {
-        case (IntType, IntType) => (result, BoolType)
-        case (IntType, FloatType) => (result, BoolType)
-        case (FloatType, IntType) => (result, BoolType)
-        case (FloatType, FloatType) => (result, BoolType)
-        case (StringType, StringType) if operation == "==" || operation == "<>" => (result, BoolType)
-        case (BoolType, BoolType) if operation == "==" || operation == "<>" => (result, BoolType)
+        case (IntType, IntType) | (IntType, FloatType) | (FloatType, IntType) | (FloatType, FloatType) =>
+          val result = ADR.addTempBool()
+          MEM.quadruples.enqueue((operation, leftOp._1, rightOp._1, result))
+          (result, BoolType)
+        case (StringType, StringType) | (BoolType, BoolType) if operation == ADR.eq || operation == ADR.ne =>
+          val result = ADR.addTempBool()
+          MEM.quadruples.enqueue((operation, leftOp._1, rightOp._1, result))
+          (result, BoolType)
         case _ => sys.error("Error: Relation operation " + operation + " between " + leftOp._2 + " and " + rightOp._2
           + " not permitted")
       }
     }
 
-    def logicalQuad(operation: String, leftOp: (String, Type), rightOp: (String, Type), result: String)
-    : (String, Type) = {
-      quadruples.enqueue(Quad(operation, leftOp._1, rightOp._1, result))
-      tempIdNum += 1
+    def logicalQuad(operation: Int, leftOp: (Int, Type), rightOp: (Int, Type)) = {
       (leftOp._2, rightOp._2) match {
-        case (BoolType, BoolType) => (result, BoolType)
+        case (BoolType, BoolType) =>
+          val result = ADR.addTempBool()
+          MEM.quadruples.enqueue((operation, leftOp._1, rightOp._1, result))
+          (result, BoolType)
         case _ => sys.error("Error: Logical operation " + operation + " between " + leftOp._2 + " and " + rightOp._2
           + " not permitted")
       }
     }
 
     expr match {
-      case IntN(num) => (num.toString, IntType)
-      case FloatN(num) => (num.toString, FloatType)
-      case Str(string) => (string, StringType)
-      case Bool(boolean) => (boolean.toString, BoolType)
+      case IntN(num) => (ADR.addIntVal(num), IntType)
+      case FloatN(num) => (ADR.addFltVal(num), FloatType)
+      case Str(string) => (ADR.addStrVal(string), StringType)
+      case Bool(boolean) => (ADR.addBoolVal(boolean), BoolType)
       case Id(name) =>
         val variable = funVarTable get name
-        val globalVariable = functionDirectory("global").variables get name
-        if (variable isDefined) (name, variable.get.typ)
-        else if (globalVariable isDefined) (name, globalVariable.get.typ)
+        val globalVariable = MEM.functionDirectory("global").variables get name
+        if (variable isDefined) (variable.get.address, variable.get.typ)
+        else if (globalVariable isDefined) (globalVariable.get.address, globalVariable.get.typ)
         else sys.error(s"Error: The variable $name doesn't exist")
 
       case IdArray(name, index) => ??? // TODO
       case IdMatrix(name, rowIndex, colIndex) => ??? // TODO
       case FunCall(name, params) => ??? // TODO
-      case ReadString() => ("readStr", StringType)
-      case ReadInt() => ("readInt", IntType)
-      case ReadFloat() => ("readFloat", FloatType)
-      case Sum(e1, e2) => arithmeticQuad("+", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case Sub(e1, e2) => arithmeticQuad("-", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case Mul(e1, e2) => arithmeticQuad("*", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case Div(e1, e2) => arithmeticQuad("/", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case Mod(e1, e2) => arithmeticQuad("%", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case Equals(e1, e2) => relationalQuad("==", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case Unequals(e1, e2) => relationalQuad("<>", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case GreaterThan(e1, e2) => relationalQuad("<", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case GreaterEquals(e1, e2) => relationalQuad("<=", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case LessThan(e1, e2) => relationalQuad(">", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case LessEquals(e1, e2) => relationalQuad(">=", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case And(e1, e2) => logicalQuad("and", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
-      case Or(e1, e2) => logicalQuad("or", addQuads(funVarTable, e1), addQuads(funVarTable, e2), "t" + tempIdNum)
+      case ReadString() => (ADR.rdStr, StringType)
+      case ReadInt() => (ADR.rdInt, IntType)
+      case ReadFloat() => (ADR.rdFlt, FloatType)
+      case Sum(e1, e2) => arithmeticQuad(ADR.sum, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case Sub(e1, e2) => arithmeticQuad(ADR.sub, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case Mul(e1, e2) => arithmeticQuad(ADR.mul, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case Div(e1, e2) => arithmeticQuad(ADR.div, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case Mod(e1, e2) => arithmeticQuad(ADR.mod, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case Equals(e1, e2) => relationalQuad(ADR.eq, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case NotEquals(e1, e2) => relationalQuad(ADR.ne, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case GreaterThan(e1, e2) => relationalQuad(ADR.gt, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case GreaterEquals(e1, e2) => relationalQuad(ADR.ge, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case LessThan(e1, e2) => relationalQuad(ADR.lt, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case LessEquals(e1, e2) => relationalQuad(ADR.le, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case And(e1, e2) => logicalQuad(ADR.and, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
+      case Or(e1, e2) => logicalQuad(ADR.or, addQuads(funVarTable, e1), addQuads(funVarTable, e2))
 
       case _ => sys.error("Error: BAD EXPRESSION. DON'T EXPRESS LIKE THAT.")
     }
@@ -127,21 +124,23 @@ object Evaluator {
 
   def processStatements(funName: String, statements: Seq[Statement]): Unit = {
 
-    tempIdNum = 1
-
-    val varTable = functionDirectory(funName).variables
+    val varTable = MEM.functionDirectory(funName).variables
 
     def assignVar(name: String, expression: Expression, i: Int = 0, j: Int = 0) = {
       val variable = varTable get name
-      val globalVariable = functionDirectory("global").variables get name
+      val globalVariable = MEM.functionDirectory("global").variables get name
       if (variable isDefined) {
         val evaluatedExpr = addQuads(varTable, expression)
-        if (evaluatedExpr._2 == variable.get.typ) quadruples.enqueue(Quad("=", evaluatedExpr._1, "", name))
+        if (evaluatedExpr._2 == variable.get.typ) {
+          MEM.quadruples.enqueue((ADR.asgmt, evaluatedExpr._1, -1, variable.get.address))
+        }
         else sys.error("Error: Expression assignnment of variable " + name + " doesn't match expected type")
       }
       else if (globalVariable isDefined) {
         val evaluatedExpr = addQuads(varTable, expression)
-        if (evaluatedExpr._2 == globalVariable.get.typ) quadruples.enqueue(Quad("=", evaluatedExpr._1, "", name))
+        if (evaluatedExpr._2 == globalVariable.get.typ) {
+          MEM.quadruples.enqueue((ADR.asgmt, evaluatedExpr._1, -1, globalVariable.get.address))
+        }
         else sys.error("Error: Expression assignnment of variable " + name + "doesn't match expected type")
       }
       else sys.error("Error: Variable " + name + " doesn't exist in this scope")
@@ -155,55 +154,55 @@ object Evaluator {
       case IfThen(expr, block) =>
         val evaluatedExpr = addQuads(varTable, expr)
         if (evaluatedExpr._2 == BoolType) {
-          val gotofLine = quadruples.length
-          quadruples.enqueue(Quad("", "", "", ""))
+          val gotofLine = MEM.quadruples.length
+          MEM.quadruples.enqueue((-1, -1, -1, -1))
           processStatements(funName, block.statements)
-          quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 1).toString))
+          MEM.quadruples.update(gotofLine, (ADR.gotof, evaluatedExpr._1, -1, MEM.quadruples.length + 1))
         }
         else sys.error("ERROR: If condition must contain a boolean expression")
       case IfThenElse(expr, blockOne, blockTwo) =>
         val evaluatedExpr = addQuads(varTable, expr)
         if (evaluatedExpr._2 == BoolType) {
-          val gotofLine = quadruples.length
-          quadruples.enqueue(Quad("", "", "", ""))
+          val gotofLine = MEM.quadruples.length
+          MEM.quadruples.enqueue((-1, -1, -1, -1))
           processStatements(funName, blockOne.statements)
-          quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 2).toString))
-          val gotoLine = quadruples.length
-          quadruples.enqueue(Quad("", "", "", ""))
+          MEM.quadruples.update(gotofLine, (ADR.gotof, evaluatedExpr._1, -1, MEM.quadruples.length + 2))
+          val gotoLine = MEM.quadruples.length
+          MEM.quadruples.enqueue((-1, -1, -1, -1))
           processStatements(funName, blockTwo.statements)
-          quadruples.update(gotoLine, Quad("goto", "", "", (quadruples.length + 1).toString))
+          MEM.quadruples.update(gotoLine, (ADR.gotof, -1, -1, MEM.quadruples.length + 1))
         }
         else sys.error("ERROR: If condition must contain a boolean expression")
       case WhileDo(expr, block) =>
         val evaluatedExpr = addQuads(varTable, expr)
         if (evaluatedExpr._2 == BoolType) {
-          val gotofLine = quadruples.length
-          quadruples.enqueue(Quad("", "", "", ""))
+          val gotofLine = MEM.quadruples.length
+          MEM.quadruples.enqueue((-1, -1, -1, -1))
           processStatements(funName, block.statements)
-          quadruples.enqueue(Quad("goto", "", "", (gotofLine + 1).toString))
-          quadruples.update(gotofLine, Quad("gotof", evaluatedExpr._1, "", (quadruples.length + 1).toString))
+          MEM.quadruples.enqueue((ADR.goto, -1, -1, gotofLine + 1))
+          MEM.quadruples.update(gotofLine, (ADR.gotof, evaluatedExpr._1, -1, MEM.quadruples.length + 1))
         }
         else sys.error("ERROR: While condition must contain a boolean expression")
       case FunctionCall(name, params) =>
-        if (functionDirectory contains name) {
-          val paramsTypes = functionDirectory(name).paramsTypes
+        if (MEM.functionDirectory contains name) {
+          val paramsTypes = MEM.functionDirectory(name).paramsTypes
           if (params.length == paramsTypes.length) {
-            quadruples.enqueue(Quad("era", name, "", ""))
+            MEM.quadruples.enqueue((ADR.era, -1 /*name*/, -1, -1))
             for (i <- params.indices) {
               val evaluatedExpr = addQuads(varTable, params(i))
               if (evaluatedExpr._2 == paramsTypes(i)) {
-                quadruples.enqueue(Quad("param", evaluatedExpr._1.toString, "", "param" + (i + 1)))
+                MEM.quadruples.enqueue((ADR.param, evaluatedExpr._1, -1, ADR.param))
               }
-              else sys.error("ERROR: Type mismatch on function call " + name )
+              else sys.error("ERROR: Type mismatch on function call " + name)
             }
-            quadruples.enqueue(Quad("gosub", name, "", ""))
+            MEM.quadruples.enqueue((ADR.gosub, -1 /*name*/, -1, -1))
           }
-          else sys.error("ERROR: Incorrect number of parameters in function call " + name )
+          else sys.error("ERROR: Incorrect number of parameters in function call " + name)
         }
         else sys.error("ERROR: Function " + name + " is not defined")
       case Write(expr) =>
         val evaluatedExpr = addQuads(varTable, expr)
-        quadruples.enqueue(Quad("write", evaluatedExpr._1, "", ""))
+        MEM.quadruples.enqueue((ADR.write, evaluatedExpr._1, -1, -1))
 
       case _ => sys.error("ERROR STATEMENT")
     }
@@ -220,18 +219,18 @@ object Evaluator {
   def addFunction(name: String, params: Seq[Vars], typ: Type, block: Block) {
     block match {
       case Block(vars, statements, retrn) =>
-        if (functionDirectory contains name) sys.error(s"Error: Function $name already defined")
+        if (MEM.functionDirectory contains name) sys.error(s"Error: Function $name already defined")
         else {
           val funParamsTypes = params.map(_.getType)
-          val funVarTable = createVarTable(createVarTable(newVarTable, params), vars)
-          functionDirectory(name) = Fun(typ, funParamsTypes, funVarTable, statements, quadruples.length + 1)
+          val funVarTable = createVarTable(createVarTable(MEM.VarTable(), params), vars)
+          MEM.functionDirectory(name) = MEM.Fun(typ, funParamsTypes, funVarTable, statements, MEM.quadruples.length + 1)
 
           // make quadruples
           processStatements(name, statements)
 
           // make return quadruple
           val returnExpr = addQuads(funVarTable, retrn)
-          if (returnExpr._2 == typ) quadruples.enqueue(Quad("RETURN", returnExpr._1, "", ""))
+          if (returnExpr._2 == typ) MEM.quadruples.enqueue((ADR.retrn, returnExpr._1, -1, -1))
           else sys.error("Error: return expression of type " + returnExpr._2 + " doesn't match function type")
         }
     }
@@ -251,26 +250,14 @@ object Evaluator {
         // TODO Change contains name for isDefined implementation
         case Variable(name, typ) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else createVarTable(table + (name -> Var(typ, 0, 0)), vars.tail)
+          else createVarTable(table + (name -> MEM.Var(typ, 0, 0)), vars.tail)
         case Array(name, typ, size) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else createVarTable(table + (name -> Var(typ, size, 0)), vars.tail)
+          else createVarTable(table + (name -> MEM.Var(typ, size, 0)), vars.tail)
         case Matrix(name, typ, row, col) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else createVarTable(table + (name -> Var(typ, row, col)), vars.tail)
+          else createVarTable(table + (name -> MEM.Var(typ, row, col)), vars.tail)
       }
     }
   }
-
-  case class Var(typ: Type, row: Int, column: Int)
-
-  case class Expr(expression: Expression, typ: Type)
-
-  case class Quad(operator: String, left: String, right: String, result: String) {
-    override def toString: String = f"|$operator%8s|$left%8s|$right%8s|$result%8s|"
-  }
-
-  case class Fun(typ: Type, paramsTypes: Seq[Type], variables: VarTable, statements: Seq[Statement] = Seq(),
-                 starts: Int = 0)
-
 }

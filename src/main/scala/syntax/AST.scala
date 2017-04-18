@@ -84,7 +84,7 @@ case class Or(comparison1: Expression, comparison2: Expression) extends Expressi
 // Level 2 <COMP>
 case class Equals(expr1: Expression, expr2: Expression) extends Expression
 
-case class Unequals(expr1: Expression, expr2: Expression) extends Expression
+case class NotEquals(expr1: Expression, expr2: Expression) extends Expression
 
 case class GreaterThan(expr1: Expression, expr2: Expression) extends Expression
 
