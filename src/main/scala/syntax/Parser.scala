@@ -45,7 +45,7 @@ object Parser extends Parsers {
   }
 
   def block: Parser[Block] = positioned {
-    INDENT() ~> rep(vars)  ~  rep1(statement) ~ RETURN() ~ expression <~ DEDENT() ^^ {
+    INDENT() ~> rep(vars) ~ rep1(statement) ~ RETURN() ~ expression <~ DEDENT() ^^ {
       case varss ~ statements ~ _ ~ expr => Block(varss, statements, expr)
     }
   }

@@ -25,15 +25,17 @@ import syntax.Program
 //val mul   = 13
 //val div   = 14
 //val mod   = 14
-//val gotof = 15
-//val gosub = 16
-//val era   = 17
-//val param = 18
-//val rdInt = 19
-//val rdFlt = 20
-//val rdStr = 21
-//val write = 22
-//val retrn = 23
+//val era   = 15
+//val ver   = 16
+//val adr   = 17
+//val gotof = 18
+//val gosub = 19
+//val param = 20
+//val rdInt = 21
+//val rdFlt = 22
+//val rdStr = 23
+//val write = 24
+//val retrn = 25
 //
 //private val intValInitAdr  = 100
 //private val fltValInitAdr  = 2500
@@ -51,9 +53,10 @@ object Test {
   def main(args: Array[String]): Unit = {
     val code =
       """
-        |matrix[10][1] arr: Int
+        |matrix[2][1] arr: Int
         |fun f(var number: Int, var str: String): Int
         |  var z: Bool
+        |  arr[0][1] = 29
         |  z = true
         |  if z then
         |    write("hola")
@@ -62,7 +65,7 @@ object Test {
         |fun f2(): String
         |  var s: String
         |  var i: Int
-        |  i = 0
+        |  i = -2
         |  while i <> 3 do
         |    s = readString()
         |    s = s + " mundo"
