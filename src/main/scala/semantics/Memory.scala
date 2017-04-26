@@ -77,27 +77,27 @@ object Memory {
     val write = 24
     val retrn = 25
 
-    private val intValInitAdr  = 100
-    private val fltValInitAdr  = 2500
-    private val strValInitAdr  = 5000
-    private val boolValInitAdr = 7500
-    private val intVarInitAdr  = 10000
-    private val fltVarInitAdr  = 11000
-    private val strVarInitAdr  = 12000
-    private val boolVarInitAdr = 13000
-    private val tmpIntInitAdr  = 14000
-    private val tmpFltInitAdr  = 16000
-    private val tmpStrInitAdr  = 18000
-    private val tmpBoolInitAdr = 20000
+    private val tmpBoolAdrRange = 20000 until 22000
+    private val tmpStrAdrRange  = 18000 until tmpBoolAdrRange.start
+    private val tmpFltAdrRange  = 16000 until tmpStrAdrRange.start
+    private val tmpIntAdrRange  = 14000 until tmpFltAdrRange.start
+    private val boolVarAdrRange = 13000 until tmpIntAdrRange.start
+    private val strVarAdrRange  = 12000 until boolVarAdrRange.start
+    private val fltVarAdrRange  = 11000 until strVarAdrRange.start
+    private val intVarAdrRange  = 10000 until fltVarAdrRange.start
+    private val boolValAdrRange = 7500 until intVarAdrRange.start
+    private val strValAdrRange  = 5000 until boolValAdrRange.start
+    private val fltValAdrRange  = 2500 until strValAdrRange.start
+    private val intValAdrRange  = 100 until fltValAdrRange.start
 
-    private val intValAdr = Array.ofDim[Int](fltValInitAdr - intValInitAdr)
-    private val fltValAdr = Array.ofDim[Float](strValInitAdr - fltValInitAdr)
-    private val strValAdr = Array.ofDim[String](boolValInitAdr - strValInitAdr)
-    private val boolValAdr = Array.ofDim[Boolean](intVarInitAdr - boolValInitAdr)
-    private val intVarAdr = Array.fill[Int](fltVarInitAdr - intVarInitAdr)(-1)
-    private val fltVarAdr = Array.fill[Int](strVarInitAdr - fltVarInitAdr)(-1)
-    private val strVarAdr = Array.fill[Int](boolVarInitAdr - strVarInitAdr)(-1)
-    private val boolVarAdr = Array.fill[Int](22000 - boolVarInitAdr)(-1)
+    private val intValAdr = Array.ofDim[Int](intValAdrRange.length)
+    private val fltValAdr = Array.ofDim[Float](fltValAdrRange.length)
+    private val strValAdr = Array.ofDim[String](strValAdrRange.length)
+    private val boolValAdr = Array.ofDim[Boolean](boolValAdrRange.length)
+    private val intVarAdr = Array.ofDim[Int](intVarAdrRange.length)
+    private val fltVarAdr = Array.ofDim[Int](fltVarAdrRange.length)
+    private val strVarAdr = Array.ofDim[Int](strVarAdrRange.length)
+    private val boolVarAdr = Array.ofDim[Int](boolVarAdrRange.length)
 
     private var intValInd  = 0
     private var fltValInd  = 0
@@ -107,10 +107,10 @@ object Memory {
     private var fltVarInd  = 0
     private var strVarInd  = 0
     private var boolVarInd = 0
-    private var tmpIntAdr  = tmpIntInitAdr
-    private var tmpFltAdr  = tmpFltInitAdr
-    private var tmpStrAdr  = tmpStrInitAdr
-    private var tmpBoolAdr = tmpBoolInitAdr
+    private var tmpIntAdr  = tmpIntAdrRange.start
+    private var tmpFltAdr  = tmpFltAdrRange.start
+    private var tmpStrAdr  = tmpStrAdrRange.start
+    private var tmpBoolAdr = tmpBoolAdrRange.start
 
     def get: String = {
       intValAdr.take(intValInd).mkString(";") + "\n" +
@@ -127,16 +127,16 @@ object Memory {
       var address = 0
       typ match {
         case IntType =>
-          address = intVarInitAdr + intVarInd
+          address = intVarAdrRange(intVarInd)
           intVarInd += rows * columns
         case FloatType =>
-          address = fltVarInitAdr + fltVarInd
+          address = fltVarAdrRange(fltVarInd)
           fltVarInd += rows * columns
         case StringType =>
-          address = strVarInitAdr + strVarInd
+          address = strVarAdrRange(strVarInd)
           strVarInd += rows * columns
         case BoolType =>
-          address = boolVarInitAdr + boolVarInd
+          address = boolVarAdrRange(boolVarInd)
           boolVarInd += rows * columns
         case _ => sys.error("Type not supported yet")
       }
@@ -146,28 +146,28 @@ object Memory {
     def addTempInt(): Int = {
       val address = tmpIntAdr
       tmpIntAdr += 1
-      if (tmpIntAdr == tmpFltInitAdr) sys.error("Error: Out of memory for temporal ints")
+      if (tmpIntAdr == tmpFltAdrRange.end) sys.error("Error: Out of memory for temporal ints")
       else address
     }
 
     def addTempFloat(): Int = {
       val address = tmpFltAdr
       tmpFltAdr += 1
-      if (tmpFltAdr == tmpStrInitAdr) sys.error("Error: Out of memory for temporal floats")
+      if (tmpFltAdr == tmpStrAdrRange.end) sys.error("Error: Out of memory for temporal floats")
       else address
     }
 
     def addTempString(): Int = {
       val address = tmpStrAdr
       tmpStrAdr += 1
-      if (tmpStrAdr == tmpBoolInitAdr) sys.error("Error: Out of memory for temporal ints")
+      if (tmpStrAdr == tmpBoolAdrRange.end) sys.error("Error: Out of memory for temporal ints")
       else address
     }
 
     def addTempBool(): Int = {
       val address = tmpBoolAdr
       tmpBoolAdr += 1
-      if (tmpBoolAdr == intValInitAdr) sys.error("Error: Out of memory for temporal ints")
+      if (tmpBoolAdr == intValAdrRange.end) sys.error("Error: Out of memory for temporal ints")
       else address
     }
 
@@ -176,7 +176,7 @@ object Memory {
       catch {
         case e: ArrayIndexOutOfBoundsException => sys.error("Error: Out of memory for ints values")
       }
-      val address = intValInitAdr + intValInd
+      val address = intValAdrRange(intValInd)
       intValInd += 1
       address
     }
@@ -186,7 +186,7 @@ object Memory {
       catch {
         case e: ArrayIndexOutOfBoundsException => sys.error("Error: Out of memory for float values")
       }
-      val address = fltValInitAdr + fltValInd
+      val address = fltValAdrRange(fltValInd)
       fltValInd += 1
       address
     }
@@ -196,7 +196,7 @@ object Memory {
       catch {
         case e: ArrayIndexOutOfBoundsException => sys.error("Error: Out of memory for string values")
       }
-      val address = strValInitAdr + strValInd
+      val address = strValAdrRange(strValInd)
       strValInd += 1
       address
     }
@@ -206,20 +206,19 @@ object Memory {
       catch {
         case e: ArrayIndexOutOfBoundsException => sys.error("Error: Out of memory for string values")
       }
-      val address = boolValInitAdr + boolValInd
+      val address = boolValAdrRange(boolValInd)
       boolValInd += 1
       address
     }
 
     def assignValToVarAdr(expr: EvalExpr, address: Int) {
       expr.typ match {
-        case IntType => intVarAdr.update(address - intVarInitAdr,  expr.address)
-        case FloatType => fltVarAdr.update(address - fltVarInitAdr, expr.address)
-        case StringType => strVarAdr.update(address - strVarInitAdr, expr.address)
-        case BoolType => boolVarAdr.update(address - boolVarInitAdr, expr.address)
+        case IntType => intVarAdr.update(address - intVarAdrRange.start,  expr.address)
+        case FloatType => fltVarAdr.update(address - fltVarAdrRange.start, expr.address)
+        case StringType => strVarAdr.update(address - strVarAdrRange.start, expr.address)
+        case BoolType => boolVarAdr.update(address - boolVarAdrRange.start, expr.address)
         case _ => sys.error("Type not supported yet")
       }
     }
   }
-
 }

@@ -44,7 +44,7 @@ object Lexer extends RegexParsers {
   }
 
   def valFloat: Parser[VAL_FLOAT] = positioned {
-    "-?[0-9]+.[0-9]+".r ^^ { str =>
+    "-?[0-9]+\\.[0-9]+".r ^^ { str =>
       val float = str.toFloat
       VAL_FLOAT(float)
     }

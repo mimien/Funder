@@ -53,35 +53,20 @@ object Test {
   def main(args: Array[String]): Unit = {
     val code =
       """
-        |matrix[2][1] arr: Int
-        |fun f(var number: Int, var str: String): Int
-        |  var z: Bool
-        |  arr[0][1] = 29
-        |  z = true
-        |  if z then
-        |    write("hola")
-        |  return 1 + 1
-        |
-        |fun f2(): String
-        |  var s: String
-        |  var i: Int
-        |  i = -2
-        |  while i <> 3 do
-        |    s = readString()
-        |    s = s + " mundo"
-        |    i = i + 1
-        |  f(1, "mimo")
-        |  return s
-        |
         |main
-        |  var z: Float
-        |  z = 4 - 10 + 4 * 4.2
-        |  if z > 20 then
-        |    z = z + 1
-        |    write((z + 2) / 10)
-        |  else
-        |    write("z " + "mal")
-        |    write(z < 20)
+        |  matrix[2][3] arr: Int
+        |  var x: Float
+        |  var z: Int
+        |  var s: String
+        |  var b: Bool
+        |  z = 3
+        |  x = 9.2 + z
+        |  arr[1 + 1][z]= 1 - z
+        |  arr[1][1]= z * z
+        |  z = 20 * arr[1][1]
+        |  s = "hola"
+        |  b = true
+        |  write(s)
         |  return 0
         |""".stripMargin
     val result = Lexer(code)

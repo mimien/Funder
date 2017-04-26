@@ -19,7 +19,7 @@ object Evaluator {
   val ADR = Memory.Addresses
   val MEM = Memory
 
-  def apply(program: Program): FunDirectory = {
+  def apply(program: Program): String = {
     MEM.quadruples.enqueue((-1, -1, -1, -1))
 
     // Add global variables table to the function directory
@@ -32,12 +32,8 @@ object Evaluator {
     // Add main variables table to the function directory
     addFunction("main", Seq(), IntType, program.main)
 
-    // Print quadruples
-    for (i <- MEM.quadruples.indices) {
-      println(f"${i + 1}%2s${MEM.quadruples(i)}")
-    }
-    println(ADR.get)
-    MEM.functionDirectory
+    println(MEM.functionDirectory)
+    ADR.get + MEM.quadruples.mkString("\n")
   }
 
   def addExprQuads(funVarTable: VarTable, expr: Expression): EvalExpr = {
