@@ -20,20 +20,20 @@ object Evaluator {
   val MEM = Memory
 
   def apply(program: Program): String = {
-    MEM.quadruples.enqueue((-1, -1, -1, -1))
+    MEM.addQuadruple(-1, -1, -1, -1)
 
     // Add global variables table to the function directory
     MEM.functionDirectory("global") = Memory.Fun(IntType, Seq(), createVarTable(MEM.VarTable(), program.vars))
 
     // Add function variables tables to the function directory
     program.functions.foreach(f => addFunction(f.id, f.params, f.returnTyp, f.block))
-    MEM.quadruples.update(0, (ADR.goto, MEM.quadruples.length + 1, -1, -1))
+    MEM.updateQuadruple(0, ADR.goto, MEM.numberOfQuadruples, -1, -1)
 
     // Add main variables table to the function directory
     addFunction("main", Seq(), IntType, program.main)
 
     println(MEM.functionDirectory)
-    ADR.get + MEM.quadruples.mkString("\n")
+    ADR.get + MEM.quadruplesToString
   }
 
   def addExprQuads(funVarTable: VarTable, expr: Expression): EvalExpr = {
@@ -42,12 +42,10 @@ object Evaluator {
       val evalIndxExpr = addExprQuads(funVarTable, index)
 
       if (evalIndxExpr.typ == IntType) {
-        MEM.quadruples.enqueue((ADR.ver, evalIndxExpr.address, -1, arr.rows))
+        MEM.addQuadruple(ADR.ver, evalIndxExpr.address, -1, arr.rows)
         val tempArrValAdr = ADR.addTempInt()
-        MEM.quadruples.enqueue((ADR.sum, evalIndxExpr.address, arr.address, tempArrValAdr))
-        val arrValue = ADR.addTempInt()
-        MEM.quadruples.enqueue((ADR.adr, tempArrValAdr, -1, arrValue))
-        arrValue
+        MEM.addQuadruple(ADR.sum, evalIndxExpr.address, arr.address, tempArrValAdr)
+        tempArrValAdr
       }
       else sys.error("Error: Index must be integer type")
     }
@@ -57,14 +55,12 @@ object Evaluator {
       val evalColIndxExpr = addExprQuads(funVarTable, col)
 
       if (evalRowIndxExpr.typ == IntType && evalColIndxExpr.typ == IntType) {
-        MEM.quadruples.enqueue((ADR.ver, evalRowIndxExpr.address, -1, arr.rows))
+        MEM.addQuadruple(ADR.ver, evalRowIndxExpr.address, -1, arr.rows)
         val tempArrValOne = ADR.addTempInt()
-        MEM.quadruples.enqueue((ADR.mul, evalRowIndxExpr.address, arr.columns, tempArrValOne))
+        MEM.addQuadruple(ADR.mul, evalRowIndxExpr.address, arr.columns, tempArrValOne)
         val tempArrValTwo = ADR.addTempInt()
-        MEM.quadruples.enqueue((ADR.sum, tempArrValOne, evalColIndxExpr.address, tempArrValTwo))
-        val matrixElemAdr = ADR.addTempInt()
-        MEM.quadruples.enqueue((ADR.adr, tempArrValTwo, -1, matrixElemAdr))
-        matrixElemAdr
+        MEM.addQuadruple(ADR.sum, tempArrValOne, evalColIndxExpr.address, tempArrValTwo)
+        tempArrValTwo
       }
       else sys.error("Error: Indices must be integer type")
     }
@@ -73,15 +69,15 @@ object Evaluator {
       (leftOp.typ, rightOp.typ) match {
         case (IntType, IntType) =>
           val result = ADR.addTempInt()
-          MEM.quadruples.enqueue((operation, leftOp.address, rightOp.address, result))
+          MEM.addQuadruple(operation, leftOp.address, rightOp.address, result)
           EvalExpr(result, IntType)
         case (IntType, FloatType) | (FloatType, IntType) | (FloatType, FloatType) =>
           val result = ADR.addTempFloat()
-          MEM.quadruples.enqueue((operation, leftOp.address, rightOp.address, result))
+          MEM.addQuadruple(operation, leftOp.address, rightOp.address, result)
           EvalExpr(result, FloatType)
         case (StringType, StringType) if operation == ADR.sum =>
           val result = ADR.addTempString()
-          MEM.quadruples.enqueue((operation, leftOp.address, rightOp.address, result))
+          MEM.addQuadruple(operation, leftOp.address, rightOp.address, result)
           EvalExpr(result, StringType)
         case _ => sys.error("Error: Arithmetic operation " + operation + " between " + leftOp.typ + " and " +
           rightOp.typ + " not permitted")
@@ -92,11 +88,11 @@ object Evaluator {
       (leftOp.typ, rightOp.typ) match {
         case (IntType, IntType) | (IntType, FloatType) | (FloatType, IntType) | (FloatType, FloatType) =>
           val result = ADR.addTempBool()
-          MEM.quadruples.enqueue((operation, leftOp.address, rightOp.address, result))
+          MEM.addQuadruple(operation, leftOp.address, rightOp.address, result)
           EvalExpr(result, BoolType)
         case (StringType, StringType) | (BoolType, BoolType) if operation == ADR.eq || operation == ADR.ne =>
           val result = ADR.addTempBool()
-          MEM.quadruples.enqueue((operation, leftOp.address, rightOp.address, result))
+          MEM.addQuadruple(operation, leftOp.address, rightOp.address, result)
           EvalExpr(result, BoolType)
         case _ => sys.error("Error: Relation operation " + operation + " between " + leftOp.typ + " and " + rightOp.typ
           + " not permitted")
@@ -107,7 +103,7 @@ object Evaluator {
       (leftOp.typ, rightOp.typ) match {
         case (BoolType, BoolType) =>
           val result = ADR.addTempBool()
-          MEM.quadruples.enqueue((operation, leftOp.address, rightOp.address, result))
+          MEM.addQuadruple(operation, leftOp.address, rightOp.address, result)
           EvalExpr(result, BoolType)
         case _ => sys.error("Error: Logical operation " + operation + " between " + leftOp.typ + " and " + rightOp.typ
           + " not permitted")
@@ -177,8 +173,24 @@ object Evaluator {
         def varAssignment(variable: MEM.Var) {
           val evaluatedExpr = addExprQuads(varTable, expr)
           if (evaluatedExpr.typ == variable.typ) {
+            val tempAdr = evaluatedExpr.address match {
+              case ADR.rdInt =>
+                val tempInt = ADR.addTempInt()
+                MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, tempInt, variable.address)
+                EvalExpr(tempInt, IntType)
+              case ADR.rdFlt =>
+                val tempFloat = ADR.addTempFloat()
+                MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, tempFloat, variable.address)
+                EvalExpr(tempFloat, FloatType)
+              case ADR.rdStr =>
+                val tempStr = ADR.addTempString()
+                MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, tempStr, variable.address)
+                EvalExpr(tempStr, StringType)
+              case _ =>
+                MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, -1, variable.address)
+                evaluatedExpr
+            }
             ADR.assignValToVarAdr(evaluatedExpr, variable.address)
-            MEM.quadruples.enqueue((ADR.asgmt, evaluatedExpr.address, -1, variable.address))
           }
           else sys.error("Error: Expression assignnment of variable " + name + "doesn't match expected type")
         }
@@ -194,10 +206,10 @@ object Evaluator {
           val evaluatedExpr = addExprQuads(varTable, expr)
           if (evaluatedExpr.typ == arr.typ) {
             val evaluatedIndex = addExprQuads(varTable, index)
-            MEM.quadruples.enqueue((ADR.ver, evaluatedIndex.address, -1, arr.rows))
+            MEM.addQuadruple(ADR.ver, evaluatedIndex.address, -1, arr.rows)
             val tempElemAdr = ADR.addTempInt()
-            MEM.quadruples.enqueue((ADR.sum, evaluatedIndex.address, arr.address, tempElemAdr))
-            MEM.quadruples.enqueue((ADR.asgmt, evaluatedExpr.address, -1, tempElemAdr))
+            MEM.addQuadruple(ADR.sum, evaluatedIndex.address, arr.address, tempElemAdr)
+            MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, -1, tempElemAdr)
           }
           else sys.error("Error: Expression assignnment of variable " + name + " doesn't match expected type")
         }
@@ -208,18 +220,19 @@ object Evaluator {
         if (matrix isDefined) matrixAssignment(matrix.get)
         else if (globalMatrix isDefined) matrixAssignment(globalMatrix.get)
         else sys.error("Error: Variable " + name + " doesn't exist in this scope")
-        
+
         def matrixAssignment(arr: MEM.Var): Unit = {
           val evaluatedExpr = addExprQuads(varTable, expr)
           if (evaluatedExpr.typ == arr.typ) {
-            val evaluatedRow = addExprQuads(varTable, row)
-            val evaluatedCol = addExprQuads(varTable, col)
-            MEM.quadruples.enqueue((ADR.ver, evaluatedRow.address, -1, arr.rows))
+            val evaluatedRowIndx = addExprQuads(varTable, row)
+            val evaluatedColIndx = addExprQuads(varTable, col)
+            MEM.addQuadruple(ADR.ver, evaluatedRowIndx.address, -1, arr.rows) //
+            MEM.addQuadruple(ADR.ver, evaluatedColIndx.address, -1, arr.columns)
             val tempAdr = ADR.addTempInt()
-            MEM.quadruples.enqueue((ADR.mul, evaluatedRow.address, arr.columns, tempAdr))
+            MEM.addQuadruple(ADR.mul, evaluatedRowIndx.address, arr.columns, tempAdr)
             val tempElemAdr = ADR.addTempInt()
-            MEM.quadruples.enqueue((ADR.sum, tempAdr, evaluatedCol.address, tempElemAdr))
-            MEM.quadruples.enqueue((ADR.asgmt, evaluatedExpr.address, -1, tempElemAdr))
+            MEM.addQuadruple(ADR.sum, tempAdr, evaluatedColIndx.address, tempElemAdr)
+            MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, -1, tempElemAdr)
           }
           else sys.error("Error: Expression assignnment of variable " + name + " doesn't match expected type")
         }
@@ -227,35 +240,35 @@ object Evaluator {
       case IfThen(expr, block) =>
         val evaluatedExpr = addExprQuads(varTable, expr)
         if (evaluatedExpr.typ == BoolType) {
-          val gotofLine = MEM.quadruples.length // save the next quadruple line
-          MEM.quadruples.enqueue((-1, -1, -1, -1)) // to update later with gotof jump quad
+          val gotofLine = MEM.numberOfQuadruples // save the next quadruple line
+          MEM.addQuadruple(-1, -1, -1, -1) // to update later with gotof jump quad
           addStatementQuads(funName, block.statements)
-          MEM.quadruples.update(gotofLine, (ADR.gotof, evaluatedExpr.address, -1, MEM.quadruples.length + 1))
+          MEM.updateQuadruple(gotofLine, ADR.gotof, evaluatedExpr.address, -1, MEM.numberOfQuadruples)
         }
         else sys.error("ERROR: If condition must contain a boolean expression")
 
       case IfThenElse(expr, blockOne, blockTwo) =>
         val evaluatedExpr = addExprQuads(varTable, expr)
         if (evaluatedExpr.typ == BoolType) {
-          val gotofLine = MEM.quadruples.length // save the next quad line
-          MEM.quadruples.enqueue((-1, -1, -1, -1)) // to update later with gotof jump
+          val gotofLine = MEM.numberOfQuadruples // save the next quad line
+          MEM.addQuadruple(-1, -1, -1, -1) // to update later with gotof jump
           addStatementQuads(funName, blockOne.statements)
-          MEM.quadruples.update(gotofLine, (ADR.gotof, evaluatedExpr.address, -1, MEM.quadruples.length + 2))
-          val gotoLine = MEM.quadruples.length
-          MEM.quadruples.enqueue((-1, -1, -1, -1)) // to update later with gotof jump
+          MEM.updateQuadruple(gotofLine, ADR.gotof, evaluatedExpr.address, -1, MEM.numberOfQuadruples + 1)
+          val gotoLine = MEM.numberOfQuadruples
+          MEM.addQuadruple(-1, -1, -1, -1) // to update later with gotof jump
           addStatementQuads(funName, blockTwo.statements)
-          MEM.quadruples.update(gotoLine, (ADR.gotof, -1, -1, MEM.quadruples.length + 1))
+          MEM.updateQuadruple(gotoLine, ADR.goto, -1, -1, MEM.numberOfQuadruples)
         }
         else sys.error("ERROR: If condition must contain a boolean expression")
 
       case WhileDo(expr, block) =>
         val evaluatedExpr = addExprQuads(varTable, expr)
         if (evaluatedExpr.typ == BoolType) {
-          val gotofLine = MEM.quadruples.length // save the next quad line
-          MEM.quadruples.enqueue((-1, -1, -1, -1)) // to update later with gotof jump
+          val gotofLine = MEM.numberOfQuadruples // save the next quad line
+          MEM.addQuadruple(-1, -1, -1, -1) // to update later with gotof jump
           addStatementQuads(funName, block.statements)
-          MEM.quadruples.enqueue((ADR.goto, -1, -1, gotofLine + 1))
-          MEM.quadruples.update(gotofLine, (ADR.gotof, evaluatedExpr.address, -1, MEM.quadruples.length + 1))
+          MEM.addQuadruple(ADR.goto, -1, -1, gotofLine + 1)
+          MEM.updateQuadruple(gotofLine, ADR.gotof, evaluatedExpr.address, -1, MEM.numberOfQuadruples)
         }
         else sys.error("ERROR: While condition must contain a boolean expression")
 
@@ -264,15 +277,15 @@ object Evaluator {
         if (function isDefined) {
           val paramsTypes = function.get.paramsTypes
           if (params.length == paramsTypes.length) {
-            MEM.quadruples.enqueue((ADR.era, -1 /*name*/, -1, -1))
+            MEM.addQuadruple(ADR.era, -1 /*name*/, -1, -1)
             for (i <- params.indices) {
               val evaluatedExpr = addExprQuads(varTable, params(i))
               if (evaluatedExpr.typ == paramsTypes(i)) {
-                MEM.quadruples.enqueue((ADR.param, evaluatedExpr.address, -1, i + 1))
+                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, i + 1)
               }
               else sys.error("ERROR: Type mismatch on function call " + name)
             }
-            MEM.quadruples.enqueue((ADR.gosub, function.get.firstLine, -1, -1))
+            MEM.addQuadruple(ADR.gosub, function.get.firstLine, -1, -1)
           }
           else sys.error("ERROR: Incorrect number of parameters in function call " + name)
         }
@@ -280,7 +293,7 @@ object Evaluator {
 
       case Write(expr) =>
         val evaluatedExpr = addExprQuads(varTable, expr)
-        MEM.quadruples.enqueue((ADR.write, evaluatedExpr.address, -1, -1))
+        MEM.addQuadruple(ADR.write, evaluatedExpr.address, -1, -1)
 
       case _ => sys.error("ERROR STATEMENT")
     }
@@ -301,14 +314,14 @@ object Evaluator {
         else {
           val funParamsTypes = params.map(_.getType)
           val funVarTable = createVarTable(createVarTable(MEM.VarTable(), params), vars)
-          MEM.functionDirectory(name) = MEM.Fun(typ, funParamsTypes, funVarTable, statements, MEM.quadruples.length + 1)
+          MEM.functionDirectory(name) = MEM.Fun(typ, funParamsTypes, funVarTable, statements, MEM.numberOfQuadruples)
 
           // create statement quadruples
           addStatementQuads(name, statements)
 
           // create function return quadruple
           val returnExpr = addExprQuads(funVarTable, retrn)
-          if (returnExpr.typ == typ) MEM.quadruples.enqueue((ADR.retrn, returnExpr.address, -1, -1))
+          if (returnExpr.typ == typ) MEM.addQuadruple(ADR.retrn, returnExpr.address, -1, -1)
           else sys.error("Error: return expression of type " + returnExpr.typ + " doesn't match function type")
         }
     }

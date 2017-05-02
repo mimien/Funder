@@ -19,7 +19,19 @@ object Memory {
   type VarTable = HashMap[String, Memory.Var]
 
   val functionDirectory: FunDirectory = mutable.HashMap[String, Fun]()
-  val quadruples: mutable.Queue[(Int, Int, Int, Int)] = mutable.Queue[(Int, Int, Int, Int)]()
+  private val quadruples: mutable.Queue[Quad] = mutable.Queue[Quad]()
+
+  def addQuadruple(operation: Int, leftOpr: Int, rightOpr: Int, result: Int): Unit = {
+    quadruples.enqueue(Quad(operation, leftOpr, rightOpr, result))
+  }
+
+  def updateQuadruple(index: Int, operation: Int, leftOpr: Int, rightOpr: Int, result: Int): Unit = {
+    quadruples.update(index, Quad(operation, leftOpr, rightOpr, result))
+  }
+
+  def quadruplesToString: String = quadruples.mkString("\n")
+
+  def numberOfQuadruples: Int = quadruples.length
 
   def VarTable(): VarTable = HashMap[String, Memory.Var]()
 
@@ -45,6 +57,10 @@ object Memory {
 
   case class EvalExpr(address: Int, typ: Type)
 
+  case class Quad(operation: Int, leftOpr: Int, rightOpr: Int, result: Int) {
+    override def toString: String = s"$operation;$leftOpr;$rightOpr;$result"
+  }
+
   case class Fun(typ: Type, paramsTypes: Seq[Type], variables: VarTable, statements: Seq[Statement] = Seq(),
                  firstLine: Int = 0)
 
@@ -64,10 +80,9 @@ object Memory {
     val sub   = 12
     val mul   = 13
     val div   = 14
-    val mod   = 14
-    val era   = 15
-    val ver   = 16
-    val adr   = 17
+    val mod   = 15
+    val era   = 16
+    val ver   = 17
     val gotof = 18
     val gosub = 19
     val param = 20

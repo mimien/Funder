@@ -1,5 +1,7 @@
 package compiler
 
+import java.io.{BufferedWriter, File, FileWriter}
+
 import lexical.Lexer
 import semantics.Evaluator
 import syntax.Program
@@ -53,20 +55,30 @@ object Test {
   def main(args: Array[String]): Unit = {
     val code =
       """
-        |main
-        |  matrix[2][3] arr: Int
-        |  var x: Float
-        |  var z: Int
+        |var m: Int
+        |fun f2(): String
         |  var s: String
-        |  var b: Bool
-        |  z = 3
-        |  x = 9.2 + z
-        |  arr[1 + 1][z]= 1 - z
-        |  arr[1][1]= z * z
-        |  z = 20 * arr[1][1]
-        |  s = "hola"
-        |  b = true
-        |  write(s)
+        |  var i: Int
+        |  i = -2
+        |  while i <> 3 do
+        |    s = readString()
+        |    s = s + " mundo"
+        |    i = i + 1
+        |  return s
+        |
+        |main
+        |  var z: Float
+        |  matrix[4][20] mat: Int
+        |  m = 23
+        |  mat[3 + 1][12] = (m + 1) * 2
+        |  z = 4 - 10 + 4 * 4.2
+        |  write(z)
+        |  if z > 20 then
+        |    z = z + 1
+        |    write((z + 2) / 10)
+        |  else
+        |    write("z " + "mal")
+        |    write(z < 20)
         |  return 0
         |""".stripMargin
     val result = Lexer(code)
@@ -74,7 +86,13 @@ object Test {
     val ast = Compiler(code)
     println(ast)
     val eval = ast match {
-      case Right(p@Program(_, _, _)) => Evaluator(p)
+      case Right(p@Program(_, _, _)) =>
+        val byteCode = Evaluator(p)
+        val file = new File(args(0))
+        val bw = new BufferedWriter(new FileWriter(file))
+        bw.write(byteCode)
+        bw.close()
+        byteCode
       case Left(value) => println(value)
       case Right(value) => println(value)
     }

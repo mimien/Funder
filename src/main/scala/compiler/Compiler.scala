@@ -10,10 +10,8 @@ import syntax.{AST, Parser}
   *         created on 06/03/17
   */
 object Compiler {
-  def apply(code: String): Either[CompilationError, AST] = {
-    for {
-      tokens <- Lexer(code)
-      ast <- Parser(tokens)
-    } yield ast
-  }
+  def apply(code: String): Either[CompilationError, AST] = for {
+    tokens <- Lexer(code)
+    ast <- Parser(tokens)
+  } yield ast
 }

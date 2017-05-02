@@ -1,0 +1,34 @@
+import java.io.{FileNotFoundException, IOException}
+
+import scala.io.Source
+import scala.util.Try
+
+/**
+  * Class description
+  *
+  * @author emiliocornejo
+  *         created on 24/04/17
+  */
+object Run {
+  def main(args: Array[String]) {
+    val filename = args(0)
+    try {
+      val lines = Source.fromFile(filename).getLines()
+      val data = lines.map(s => s.split(";")).toArray
+      val memoryBlocks = {
+        val intValues = data.head.toVector map { str => Try(str.toInt).getOrElse(-1) }
+        val floatValues = data(1).toVector map { str => Try(str.toFloat).getOrElse(-1.0f) }
+        val stringValues = data(2).toVector
+        val boolValues = data(3).toVector map { str => Try(str.toBoolean).getOrElse(false) }
+        val varAddresses: Array[Vector[DataType]] = ???
+        new Memory(intValues, floatValues, stringValues, boolValues, varAddresses)
+      }
+      val quadruples = data.toVector.drop(8) map (_ map (_ toInt) toList)
+      VirtualMachine(memoryBlocks, quadruples)
+    }
+    catch {
+      case _: FileNotFoundException => println("Couldn't find that file.")
+      case _: IOException => println("Had an IOException trying to read that file")
+    }
+  }
+}

@@ -110,10 +110,8 @@ object Parser extends Parsers {
     }
   }
 
-  // Magic
   def exp: Parser[Expression] = positioned(chainl1(term, PLUS() ^^^ Sum | MINUS() ^^^ Sub))
 
-  // Magic
   def term: Parser[Expression] = positioned {
     chainl1(factor, TIMES() ^^^ Mul | DIVIDES() ^^^ Div | MOD() ^^^ Mod)
   }
