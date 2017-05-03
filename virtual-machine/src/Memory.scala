@@ -43,6 +43,10 @@ class Memory(intValues: Vector[Int],
     head
   }
 
+  def tempAdressesInt: String = tempAddresses(int).toString()
+
+  def saveTemp(dataType: DataType, typ: Int): Unit = tempAddresses(typ) = dataType :: tempAddresses(typ)
+
   def saveTempInt(num: Int): Unit = tempAddresses(int) = IntN(num) :: tempAddresses(int)
 
   def saveTempFloat(num: Float): Unit = tempAddresses(flt) = FltN(num) :: tempAddresses(flt)
@@ -57,9 +61,13 @@ class Memory(intValues: Vector[Int],
       case n if fltVarAdrRange contains n  => updateVariable(flt, varAddress, valAddress)
       case n if strVarAdrRange contains n  => updateVariable(str, varAddress, valAddress)
       case n if boolVarAdrRange contains n => updateVariable(bool, varAddress, valAddress)
-      case n if tmpIntAdrRange contains n =>
-        updateVariable(int, tempAddresses(int)(n).asInstanceOf[IntN].num, valAddress)
-        popTemp(int)
+      case n if tmpIntAdrRange contains n => val varAdr = popTemp(int).asInstanceOf[IntN].num
+        varAdr match {
+          case a if intVarAdrRange contains a => updateVariable(int, varAdr, valAddress)
+          case a if fltVarAdrRange contains a => updateVariable(flt, varAdr, valAddress)
+          case a if strVarAdrRange contains a => updateVariable(str, varAdr, valAddress)
+          case a if boolVarAdrRange contains a => updateVariable(bool, varAdr, valAddress)
+        }
     }
   }
 

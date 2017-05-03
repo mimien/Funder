@@ -48,13 +48,24 @@ case object BoolType extends Type
 
 case object StringType extends Type
 
-case object LineType extends Type
 
-case object ArcType extends Type
+sealed trait Color extends Positional
 
-case object OvalType extends Type
+case object Black extends Color
 
-case object RectangleType extends Type
+case object DarkGray extends Color
+
+case object LightGray extends Color
+
+case object Blue extends Color
+
+case object Green extends Color
+
+case object Yellow extends Color
+
+case object Red extends Color
+
+case object Orange extends Color
 
 
 sealed trait Statement extends Positional
@@ -74,6 +85,15 @@ case class WhileDo(expr: Expression, block: ConditionBlock) extends Statement
 case class FunctionCall(id: String, params: Seq[Expression]) extends Statement
 
 case class Write(expr: Expression) extends Statement
+
+case class DrawRectangle(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+
+case class DrawLine(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+
+case class DrawOval(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+
+case class DrawArc(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+
 
 sealed trait Expression extends Positional
 

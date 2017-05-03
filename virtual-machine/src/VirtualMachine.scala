@@ -37,16 +37,21 @@ object VirtualMachine {
           case ADR.mul => OPS.mul(memory, leftOpr, rightOpr)
           case ADR.div => OPS.div(memory, leftOpr, rightOpr)
           case ADR.mod => OPS.mod(memory, leftOpr, rightOpr)
+          case ADR.adr => memory.saveTemp(memory.value(IntN.unapply(memory.value(leftOpr).asInstanceOf[IntN]).get), rightOpr)
+            nextLine
+          case ADR.ver =>
+            if (IntN.unapply(memory.value(leftOpr).asInstanceOf[IntN]).get < result) nextLine
+            else sys.error("Error: Array Index out of bounds")
           case ADR.gotof =>
             val cond = Bool.unapply(memory.value(leftOpr).asInstanceOf[Bool]).get
             if (cond) nextLine else result
           case ADR.gosub => memory.saveCurrentPos(nextLine); result
           case ADR.param => memory.assign(result, leftOpr); nextLine
-          case ADR.write => println(memory.value(leftOpr)); nextLine
-          case ADR.retrn =>
-            memory.popLastPosition()
+          case ADR.write => {
+            println(memory.value(leftOpr))
+          }; nextLine
+          case ADR.retrn => memory.popLastPosition()
           case ADR.end => sys.exit(0)
-          case _ => nextLine
         }
     }
     run(quadruples, jumpToLine, memory)

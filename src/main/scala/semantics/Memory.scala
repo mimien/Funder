@@ -52,7 +52,9 @@ object Memory {
 
   case class Fun(typ: Type, paramsNames: Seq[String], variables: VarTable, statements: Seq[Statement] = Seq(),
                  firstLine: Int = 0, var returnAddress: Int = -1) {
+
     private val incorrectRtnAdrs: mutable.Queue[Int] = mutable.Queue[Int]()
+
     val address: Int = Addresses.newVariable(typ, 1, 1)
 
     def addIncorrectAdr(line: Int): Unit = incorrectRtnAdrs.enqueue(line)
@@ -60,7 +62,7 @@ object Memory {
     def correctRtnAdrs(): Unit = {
       while (incorrectRtnAdrs.nonEmpty) {
         val line = incorrectRtnAdrs.dequeue()
-        quadruples.update(line, quadruples(line).modify(rightOperator = line))
+        quadruples.update(line, quadruples(line).modify(leftOperator = returnAddress))
       }
     }
   }
@@ -82,7 +84,7 @@ object Memory {
     val mul   = 13
     val div   = 14
     val mod   = 15
-    val end   = 16
+    val adr   = 16
     val ver   = 17
     val gotof = 18
     val gosub = 19
@@ -92,6 +94,7 @@ object Memory {
     val rdStr = 23
     val write = 24
     val retrn = 25
+    val end   = 26
 
     private val tmpBoolAdrRange = 20000 until 22000
     private val tmpStrAdrRange  = 18000 until tmpBoolAdrRange.start

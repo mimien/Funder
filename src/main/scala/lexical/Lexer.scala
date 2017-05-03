@@ -72,13 +72,13 @@ object Lexer extends RegexParsers {
 
   def string: Parser[STRING] = positioned { "String" ^^ (_ => STRING()) }
 
-  def line: Parser[LINE] = positioned { "Line" ^^ (_ => LINE()) }
+  def rectangle: Parser[DRAW_RECTANGLE] = positioned { "drawRectangle" ^^ (_ => DRAW_RECTANGLE()) }
 
-  def arc: Parser[ARC] = positioned { "Arc" ^^ (_ => ARC()) }
+  def line: Parser[DRAW_LINE] = positioned { "drawLine" ^^ (_ => DRAW_LINE()) }
 
-  def oval: Parser[OVAL] = positioned { "Oval" ^^ (_ => OVAL()) }
+  def arc: Parser[DRAW_ARC] = positioned { "drawArc" ^^ (_ => DRAW_ARC()) }
 
-  def rectangle: Parser[RECTANGLE] = positioned { "Rectangle" ^^ (_ => RECTANGLE()) }
+  def oval: Parser[DRAW_OVAL] = positioned { "drawOval" ^^ (_ => DRAW_OVAL()) }
 
   def plus: Parser[PLUS] = positioned { "+" ^^ (_ => PLUS()) }
 
@@ -157,24 +157,6 @@ object Lexer extends RegexParsers {
 
   def main: Parser[MAIN] = positioned { "main" ^^ (_ => MAIN()) }
 
-  def createOval: Parser[CREATE_OVAL] = positioned { "createOval" ^^ (_ => CREATE_OVAL()) }
-
-  def createRectangle: Parser[CREATE_RECTANGLE] = positioned { "createRectangle" ^^ (_ => CREATE_RECTANGLE()) }
-
-  def createArc: Parser[CREATE_ARC] = positioned { "createArc" ^^ (_ => CREATE_ARC()) }
-
-  def createLine: Parser[CREATE_LINE] = positioned { "createLine" ^^ (_ => CREATE_LINE()) }
-
-  def moveX: Parser[MOVE_X] = positioned { "moveX" ^^ (_ => MOVE_X()) }
-
-  def moveY: Parser[MOVE_Y] = positioned { "moveY" ^^ (_ => MOVE_Y()) }
-
-  def setStroke: Parser[SET_STROKE] = positioned { "setStroke" ^^ (_ => SET_STROKE()) }
-
-  def scale: Parser[SCALE] = positioned { "scale" ^^ (_ => SCALE()) }
-
-  def setColor: Parser[SET_COLOR] = positioned { "setColor" ^^ (_ => SET_COLOR()) }
-
   def readString: Parser[READ_STRING] = positioned { "readString" ^^ (_ => READ_STRING()) }
 
   def readInt: Parser[READ_INT] = positioned { "readInt" ^^ (_ => READ_INT()) }
@@ -182,8 +164,6 @@ object Lexer extends RegexParsers {
   def readFloat: Parser[READ_FLOAT] = positioned { "readFloat" ^^ (_ => READ_FLOAT()) }
 
   def write: Parser[WRITE] = positioned { "write" ^^ (_ => WRITE()) }
-
-  def draw: Parser[DRAW] = positioned { "draw" ^^ (_ => DRAW()) }
 
   def retrn: Parser[RETURN] = positioned { "return" ^^ (_ => RETURN()) }
 
@@ -194,10 +174,9 @@ object Lexer extends RegexParsers {
       | rectangle | plus | minus | times | divides | mod | equals | notEquals | assign | greaterEquals
       | lessEquals | greaterThan | lessThan | leftParent | rightParent | leftBracket | rightBracket | comma
       | colon | variable | array | matrix | function | ifCondition | then | whileLoop | doLoop | elseCondition
-      | and | or /*| black | darkGray | lightGray*//*| blue | green | yellow | red | orange */| main /*|
-      createOval | createRectangle | createArc | createLine | moveX | moveY | setStroke | scale | setColor | draw*/
-      | write | readString | readInt |readFloat | retrn | end |  indentation | identifier)) ^^ { rawTokens =>
-      processIndentations(rawTokens)
+      | and | or | black | darkGray | lightGray | blue | green | yellow | red | orange | main | rectangle
+      | oval | line | arc | write | readString | readInt | readFloat | retrn | end | indentation | identifier)) ^^ {
+      rawTokens => processIndentations(rawTokens)
     }
   }
 
@@ -207,6 +186,7 @@ object Lexer extends RegexParsers {
       case Success(result, next) => Right(result)
     }
   }
+
   private def processIndentations(tokens: List[Token], indents: List[Int] = List(0)): List[Token] = {
     tokens.headOption match {
       // if there is an increase in indentation level, we push this new level into the stack

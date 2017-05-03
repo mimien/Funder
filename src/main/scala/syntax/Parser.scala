@@ -3,7 +3,6 @@ package syntax
 import compiler.{Location, ParserError}
 import lexical._
 
-import scala.collection.immutable.HashSet
 import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.input.{NoPosition, Position, Reader}
 
@@ -28,14 +27,10 @@ object Parser extends Parsers {
   }
 
   def dataType: Parser[Type] = positioned {
-    INT()         ^^ (_ => IntType) |
-      FLOAT()     ^^ (_ => FloatType) |
-      BOOL()      ^^ (_ => BoolType) |
-      STRING()    ^^ (_ => StringType) |
-      LINE()      ^^ (_ => LineType) |
-      ARC()       ^^ (_ => ArcType) |
-      OVAL()      ^^ (_ => OvalType) |
-      RECTANGLE() ^^ (_ => RectangleType)
+    INT()      ^^ (_ => IntType) |
+      FLOAT()  ^^ (_ => FloatType) |
+      BOOL()   ^^ (_ => BoolType) |
+      STRING() ^^ (_ => StringType)
   }
 
   def fun: Parser[Function] = positioned {
@@ -54,9 +49,19 @@ object Parser extends Parsers {
     assignment | ifThen | whileDo | functions | functionCall
   }
 
-  def functions: Parser[Statement] = positioned {
-    WRITE() ~> (LP() ~> expression <~ RP()) ^^ Write
+  def draw: Parser[Statement] = positioned {
+    (DRAW_RECTANGLE() | DRAW_OVAL() | DRAW_LINE() | DRAW_ARC()) ~ (LP() ~> expression <~ COMMA()) ~
+      (expression <~ COMMA()) ~ (expression <~ COMMA()) ~ (expression <~ RP()) ^^ {
+      case DRAW_RECTANGLE() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawRectangle(exp1, exp2, exp3, exp4)
+      case DRAW_OVAL() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawOval(exp1, exp2, exp3, exp4)
+      case DRAW_LINE() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawRectangle(exp1, exp2, exp3, exp4)
+      case DRAW_ARC() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawRectangle(exp1, exp2, exp3, exp4)
+    }
   }
+  def functions: Parser[Statement] = positioned {
+    WRITE() ~> (LP() ~> expression <~ RP()) ^^ Write | draw
+  }
+
   def assignment: Parser[Statement] = positioned {
     identifier ~ ((LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()).?).? ~ ASSIGN() ~ expression ^^ {
       case Id(id) ~ None ~ _ ~ expr => Assignment(id, expr)
@@ -129,10 +134,10 @@ object Parser extends Parsers {
       floatValue |
       stringValue |
       boolValue |
-      identifier ~ (LB() ~> intValue <~ RB()) ~ (LB() ~> intValue <~ RB()) ^^ {
+      identifier ~ (LB() ~> expression <~ RB()) ~ (LB() ~> expression <~ RB()) ^^ {
         case Id(id) ~ rows ~ cols => IdMatrix(id, rows, cols)
       } |
-      identifier ~ (LB() ~> intValue <~ RB()) ^^ {
+      identifier ~ (LB() ~> expression <~ RB()) ^^ {
         case Id(id) ~ expr => IdArray(id, expr)
       } | identifier
   }

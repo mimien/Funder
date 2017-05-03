@@ -32,14 +32,6 @@ case class BOOL() extends Token
 
 case class STRING() extends Token
 
-case class LINE() extends Token
-
-case class ARC() extends Token
-
-case class OVAL() extends Token
-
-case class RECTANGLE() extends Token
-
 // OPERATORS
 case class PLUS() extends Token
 
@@ -121,27 +113,6 @@ case class RED() extends Token
 case class ORANGE() extends Token
 
 case class MAIN() extends Token
-
-case class CREATE_OVAL() extends Token
-
-case class CREATE_RECTANGLE() extends Token
-
-case class CREATE_ARC() extends Token
-
-case class CREATE_LINE() extends Token
-
-case class MOVE_X() extends Token
-
-case class MOVE_Y() extends Token
-
-case class ROTATE_FIGURE() extends Token
-
-case class SET_STROKE() extends Token
-
-case class SCALE() extends Token
-
-case class SET_COLOR() extends Token
-
 case class READ_STRING() extends Token
 
 case class READ_INT() extends Token
@@ -150,7 +121,13 @@ case class READ_FLOAT() extends Token
 
 case class WRITE() extends Token
 
-case class DRAW() extends Token
+case class DRAW_RECTANGLE() extends Token
+
+case class DRAW_OVAL() extends Token
+
+case class DRAW_ARC() extends Token
+
+case class DRAW_LINE() extends Token
 
 case class RETURN() extends Token
 

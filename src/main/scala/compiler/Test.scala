@@ -53,19 +53,38 @@ import syntax.Program
 object Test {
   def main(args: Array[String]): Unit = {
     val code =
-      """
-        |var m: Int
-        |fun f2(var i: Int): Int
-        |  if i > 0 then
-        |    write(i)
-        |    f2(i - 1)
-        |  return i
-        |
-        |main
-        |  var n: Int
-        |  n = f2(3)
-        |  write("la funcion regresa ")
-        |  write(n)
+      """main
+        |  matrix[2][2] m1: Int
+        |  matrix[2][2] m2: Int
+        |  matrix[2][2] m3: Int
+        |  var i: Int
+        |  var j: Int
+        |  var z: Int
+        |  i = 0
+        |  m1[0] = 2
+        |  m1[0][1] = 2
+        |  m1[1][0] = 2
+        |  m1[1][1] = 2
+        |  m2[0][0] = 2
+        |  m2[0][1] = 2
+        |  m2[1][0] = 2
+        |  m2[1][1] = 2
+        |  while i<2 do
+        |    j = 0
+        |    while j<2 do
+        |      z = 0
+        |      while z<2 do
+        |        m3[i][j] = m3[i][j] + m1[i][z] * m2[z][j]
+        |        z = z + 1
+        |      j = j + 1
+        |    i = i + 1
+        |  i=0
+        |  while i<2 do
+        |    j=0
+        |    while j<2 do
+        |       write(m3[i][j])
+        |       j = j + 1
+        |    i = i + 1
         |end
         |""".stripMargin
     val result = Lexer(code)

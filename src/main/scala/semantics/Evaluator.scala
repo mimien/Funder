@@ -7,6 +7,7 @@ import syntax._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.io.StdIn
+import scala.language.postfixOps
 
 /**
   * Class description
@@ -44,11 +45,34 @@ object Evaluator {
 
       if (evalIndxExpr.typ == IntType) {
         MEM.addQuadruple(ADR.ver, evalIndxExpr.address, -1, arr.rows)
-        val tempArrValAdr = ADR.addTempInt()
-        MEM.addQuadruple(ADR.sum, evalIndxExpr.address, arr.address, tempArrValAdr)
-        tempArrValAdr
+        val tempPos = ADR.addTempInt()
+        MEM.addQuadruple(ADR.sum, evalIndxExpr.address, ADR.addIntVal(arr.address), tempPos)
+        val arrAdrVal = addTemp(arr.typ)
+        MEM.addQuadruple(ADR.adr, tempPos, typeNum(arr.typ), arrAdrVal)
+        arrAdrVal
       }
       else sys.error("Error: Index must be integer type")
+    }
+
+    // translate type to number for the vm type recognition
+    def typeNum(typ: Type) = {
+      typ match {
+        case IntType => 0
+        case FloatType => 1
+        case StringType => 2
+        case BoolType => 3
+        case _ => -1
+      }
+    }
+    // translate type to number for the vm type recognition
+    def addTemp(typ: Type) = {
+      typ match {
+        case IntType => ADR.addTempInt()
+        case FloatType => ADR.addTempFloat()
+        case StringType => ADR.addTempString()
+        case BoolType => ADR.addTempBool()
+        case _ => -1
+      }
     }
 
     def elemOfIndices(arr: MEM.Var, row: Expression, col: Expression) = {
@@ -57,11 +81,15 @@ object Evaluator {
 
       if (evalRowIndxExpr.typ == IntType && evalColIndxExpr.typ == IntType) {
         MEM.addQuadruple(ADR.ver, evalRowIndxExpr.address, -1, arr.rows)
-        val tempArrValOne = ADR.addTempInt()
-        MEM.addQuadruple(ADR.mul, evalRowIndxExpr.address, arr.columns, tempArrValOne)
-        val tempArrValTwo = ADR.addTempInt()
-        MEM.addQuadruple(ADR.sum, tempArrValOne, evalColIndxExpr.address, tempArrValTwo)
-        tempArrValTwo
+        val tempRowPos = ADR.addTempInt()
+        MEM.addQuadruple(ADR.mul, evalRowIndxExpr.address, ADR.addIntVal(arr.columns), tempRowPos)
+        val tempPos = ADR.addTempInt()
+        MEM.addQuadruple(ADR.sum, tempRowPos, evalColIndxExpr.address, tempPos)
+        val matAdr = ADR.addTempInt()
+        MEM.addQuadruple(ADR.sum, tempPos, ADR.addIntVal(arr.address), matAdr)
+        val matAdrVal = addTemp(arr.typ)
+        MEM.addQuadruple(ADR.adr, matAdr, typeNum(arr.typ), matAdrVal)
+        matAdrVal
       }
       else sys.error("Error: Indices must be integer type")
     }
@@ -230,7 +258,7 @@ object Evaluator {
             val evaluatedIndex = addExprQuads(varTable, index)
             MEM.addQuadruple(ADR.ver, evaluatedIndex.address, -1, arr.rows)
             val tempElemAdr = ADR.addTempInt()
-            MEM.addQuadruple(ADR.sum, evaluatedIndex.address, arr.address, tempElemAdr)
+            MEM.addQuadruple(ADR.sum, evaluatedIndex.address, ADR.addIntVal(arr.address), tempElemAdr)
             MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, -1, tempElemAdr)
           }
           else sys.error("Error: Expression assignnment of variable " + name + " doesn't match expected type")
@@ -251,10 +279,12 @@ object Evaluator {
             MEM.addQuadruple(ADR.ver, evaluatedRowIndx.address, -1, arr.rows) //
             MEM.addQuadruple(ADR.ver, evaluatedColIndx.address, -1, arr.columns)
             val tempAdr = ADR.addTempInt()
-            MEM.addQuadruple(ADR.mul, evaluatedRowIndx.address, arr.columns, tempAdr)
+            MEM.addQuadruple(ADR.mul, evaluatedRowIndx.address, ADR.addIntVal(arr.columns), tempAdr)
             val tempElemAdr = ADR.addTempInt()
             MEM.addQuadruple(ADR.sum, tempAdr, evaluatedColIndx.address, tempElemAdr)
-            MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, -1, tempElemAdr)
+            val matAdr = ADR.addTempInt()
+            MEM.addQuadruple(ADR.sum, tempElemAdr, ADR.addIntVal(arr.address), matAdr)
+            MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, -1, matAdr)
           }
           else sys.error("Error: Expression assignnment of variable " + name + " doesn't match expected type")
         }

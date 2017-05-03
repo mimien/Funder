@@ -188,7 +188,7 @@ object Operations {
     val mul   = 13
     val div   = 14
     val mod   = 15
-    val end   = 16
+    val adr   = 16
     val ver   = 17
     val gotof = 18
     val gosub = 19
@@ -198,5 +198,6 @@ object Operations {
     val rdStr = 23
     val write = 24
     val retrn = 25
+    val end   = 26
   }
 }
