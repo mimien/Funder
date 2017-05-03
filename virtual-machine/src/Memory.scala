@@ -73,7 +73,6 @@ class Memory(intValues: Vector[Int],
     varAddresses(typ) = varAddresses(typ).updated(varAdrRange.indexOf(varAddress), value(valAddress))
   }
 
-  // TODO FIXME
   def value(adr: Int): DataType = {
     adr match {
       case n if intValAdrRange contains n  => IntN(intValues(intValAdrRange.indexOf(adr)))

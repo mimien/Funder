@@ -137,7 +137,33 @@ object Evaluator {
         else if (globalMatrix isDefined) EvalExpr(elemOfIndices(matrix.get, row, col), globalMatrix.get.typ)
         else sys.error(s"Error: The variable $name doesn't exist")
 
-      case FunCall(name, params) => ??? // TODO
+      case FunCall(name, params) =>
+        val function = MEM.functionDirectory get name
+        if (function isDefined) {
+          val paramsNames = function.get.paramsNames
+          if (params.length == paramsNames.length) {
+            for (i <- params.indices) {
+              val variable = function.get.variables(paramsNames(i))
+              val evaluatedExpr = addExprQuads(funVarTable, params(i))
+              if (evaluatedExpr.typ == variable.typ) {
+                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, variable.address)
+              }
+              else sys.error("ERROR: Type mismatch on function call " + name)
+            }
+            MEM.addQuadruple(ADR.gosub, -1, -1, function.get.firstLine)
+
+            // Assign return expression to function address
+            val funAdr = function.get.address
+            val returnAdr = function.get.returnAddress
+            // if function return address is not defined add assignment quadruple to a queue to modify it later
+            if (returnAdr == -1) function.get.addIncorrectAdr(MEM.numberOfQuadruples)
+            MEM.addQuadruple(ADR.asgmt, returnAdr, -1, funAdr)
+            EvalExpr(funAdr, function.get.typ)
+          }
+          else sys.error("ERROR: Incorrect number of parameters in function call " + name)
+        }
+        else sys.error("ERROR: Function " + name + " is not defined")
+
       case ReadString() => EvalExpr(ADR.rdStr, StringType)
       case ReadInt() => EvalExpr(ADR.rdInt, IntType)
       case ReadFloat() => EvalExpr(ADR.rdFlt, FloatType)
@@ -258,26 +284,27 @@ object Evaluator {
         else sys.error("ERROR: If condition must contain a boolean expression")
 
       case WhileDo(expr, block) =>
+        val conditionLine = MEM.numberOfQuadruples // save the next quad line
         val evaluatedExpr = addExprQuads(varTable, expr)
         if (evaluatedExpr.typ == BoolType) {
           val gotofLine = MEM.numberOfQuadruples // save the next quad line
           MEM.addQuadruple(-1, -1, -1, -1) // to update later with gotof jump
           addStatementQuads(funName, block.statements)
-          MEM.addQuadruple(ADR.goto, -1, -1, gotofLine + 1)
+          MEM.addQuadruple(ADR.goto, -1, -1, conditionLine)
           MEM.updateQuadruple(gotofLine, ADR.gotof, evaluatedExpr.address, -1, MEM.numberOfQuadruples)
         }
         else sys.error("ERROR: While condition must contain a boolean expression")
 
-      case FunctionCall(name, paramsExpr) =>
+      case FunctionCall(name, params) =>
         val function = MEM.functionDirectory get name
         if (function isDefined) {
           val paramsNames = function.get.paramsNames
-          if (paramsExpr.length == paramsNames.length) {
-            for (i <- paramsExpr.indices) {
+          if (params.length == paramsNames.length) {
+            for (i <- params.indices) {
               val variable = function.get.variables(paramsNames(i))
-              val evaluatedExpr = addExprQuads(varTable, paramsExpr(i))
+              val evaluatedExpr = addExprQuads(varTable, params(i))
               if (evaluatedExpr.typ == variable.typ) {
-                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, variable.address)
+                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, variable .address)
               }
               else sys.error("ERROR: Type mismatch on function call " + name)
             }
@@ -314,10 +341,15 @@ object Evaluator {
           // create statement quadruples
           addStatementQuads(name, statements)
 
-
           // create function return quadruple if it is not main block and a end quadruple if it is
           if (isNotMainBlock) {
+            val function = MEM.functionDirectory(name)
             val returnExpr = addExprQuads(funVarTable, retrn)
+            // Define the return address expression for future function calls
+            function.returnAddress = returnExpr.address
+            /* Now that the function has a return address defined, modify the quads previously defined that used
+            this function */
+            function.correctRtnAdrs()
             if (returnExpr.typ == typ) MEM.addQuadruple(ADR.retrn, returnExpr.address, -1, -1)
             else sys.error("Error: return expression of type " + returnExpr.typ + " doesn't match function type")
           }

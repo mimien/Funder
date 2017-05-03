@@ -19,9 +19,9 @@ object VirtualMachine {
         operation match {
           case ADR.goto => result
           case ADR.asgmt => leftOpr match {
-            case ADR.rdInt => OPS.readInt(memory, leftOpr, result)
-            case ADR.rdFlt => OPS.readFloat(memory, leftOpr, result)
-            case ADR.rdStr => OPS.readString(memory, leftOpr, result)
+            case ADR.rdInt => OPS.readInt(memory, rightOpr, result)
+            case ADR.rdFlt => OPS.readFloat(memory, rightOpr, result)
+            case ADR.rdStr => OPS.readString(memory, rightOpr, result)
             case _ => memory.assign(result, leftOpr); nextLine
           }
           case ADR.and => OPS.and(memory, leftOpr, rightOpr)
@@ -38,8 +38,8 @@ object VirtualMachine {
           case ADR.div => OPS.div(memory, leftOpr, rightOpr)
           case ADR.mod => OPS.mod(memory, leftOpr, rightOpr)
           case ADR.gotof =>
-            if (Bool.unapply(memory.value(leftOpr).asInstanceOf[Bool]).get) nextLine
-            else result
+            val cond = Bool.unapply(memory.value(leftOpr).asInstanceOf[Bool]).get
+            if (cond) nextLine else result
           case ADR.gosub => memory.saveCurrentPos(nextLine); result
           case ADR.param => memory.assign(result, leftOpr); nextLine
           case ADR.write => println(memory.value(leftOpr)); nextLine

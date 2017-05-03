@@ -55,27 +55,17 @@ object Test {
     val code =
       """
         |var m: Int
-        |fun f2(): String
-        |  var s: String
-        |  var i: Int
-        |  i = -2
-        |  while i <> 3 do
-        |    s = readString()
-        |    s = s + " mundo"
-        |    i = i + 1
-        |  return s
+        |fun f2(var i: Int): Int
+        |  if i > 0 then
+        |    write(i)
+        |    f2(i - 1)
+        |  return i
         |
         |main
-        |  var z: Float
-        |  m = 23
-        |  z = 4 - 10 + 4 * 4.2
-        |  write(z)
-        |  if z > 10 then
-        |    z = z + 1
-        |    write((z + 2) / 10)
-        |  else
-        |    write("z " + "mal")
-        |    write(z < 20)
+        |  var n: Int
+        |  n = f2(3)
+        |  write("la funcion regresa ")
+        |  write(n)
         |end
         |""".stripMargin
     val result = Lexer(code)

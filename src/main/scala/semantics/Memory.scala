@@ -37,20 +37,6 @@ object Memory {
 
   def FunDirectory(): FunDirectory = mutable.HashMap[String, Memory.Fun]()
 
-/*  def elemOfIndex(arr: Var, index: Expression, varTable: VarTable): Int = {
-    val evalIndxExpr = Evaluator.addExprQuads(varTable, index)
-
-    if (evalIndxExpr.typ == IntType) {
-      quadruples.enqueue((Addresses.ver, evalIndxExpr.address, -1, arr.rows))
-      val arrElemAdrNum = Addresses.addTempInt()
-      quadruples.enqueue((Addresses.sum, evalIndxExpr.address, arr.address, arrElemAdrNum))
-      val elemAdr = Addresses.addTempInt()
-      quadruples.enqueue((Addresses.adr, arrElemAdrNum, -1, elemAdr))
-      elemAdr
-    }
-    else sys.error("Error: Index must be integer type")
-  }*/
-
   case class Var(typ: Type, rows: Int = 1, columns: Int = 1) {
     val address: Int = Addresses.newVariable(typ, rows, columns)
   }
@@ -58,11 +44,26 @@ object Memory {
   case class EvalExpr(address: Int, typ: Type)
 
   case class Quad(operation: Int, leftOpr: Int, rightOpr: Int, result: Int) {
+    def modify(op: Int = operation, leftOperator: Int = leftOpr, rightOperator: Int = rightOpr, res: Int = result):
+    Quad = Quad(op, leftOperator, rightOperator, res)
+
     override def toString: String = s"$operation;$leftOpr;$rightOpr;$result"
   }
 
   case class Fun(typ: Type, paramsNames: Seq[String], variables: VarTable, statements: Seq[Statement] = Seq(),
-                 firstLine: Int = 0)
+                 firstLine: Int = 0, var returnAddress: Int = -1) {
+    private val incorrectRtnAdrs: mutable.Queue[Int] = mutable.Queue[Int]()
+    val address: Int = Addresses.newVariable(typ, 1, 1)
+
+    def addIncorrectAdr(line: Int): Unit = incorrectRtnAdrs.enqueue(line)
+
+    def correctRtnAdrs(): Unit = {
+      while (incorrectRtnAdrs.nonEmpty) {
+        val line = incorrectRtnAdrs.dequeue()
+        quadruples.update(line, quadruples(line).modify(rightOperator = line))
+      }
+    }
+  }
 
   object Addresses {
 
