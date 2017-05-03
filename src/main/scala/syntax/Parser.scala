@@ -145,8 +145,8 @@ object Parser extends Parsers {
   }
 
   def program: Parser[AST] = positioned {
-    phrase(rep(vars) ~ rep(fun) ~ MAIN() ~ block) ^^ {
-      case varss ~ funs ~ _ ~ blck => Program(varss, funs, blck)
+    phrase(rep(vars) ~ rep(fun) ~ MAIN() ~ (INDENT() ~> rep(vars)) ~ (rep1(statement) <~ DEDENT()) <~ END()) ^^ {
+      case globalVars ~ funs ~ _ ~ mainVars ~ mainStatements => Program(globalVars, funs, mainVars, mainStatements)
     }
   }
 

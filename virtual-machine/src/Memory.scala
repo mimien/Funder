@@ -7,10 +7,10 @@ import scala.collection.mutable
   *         created on 24/04/17
   */
 class Memory(intValues: Vector[Int],
-                  floatValues: Vector[Float],
-                  stringValues: Vector[String],
-                  boolValues: Vector[Boolean],
-                  varAddresses: Array[Vector[DataType]]) {
+             floatValues: Vector[Float],
+             stringValues: Vector[String],
+             boolValues: Vector[Boolean],
+             varAddresses: Array[Vector[DataType]]) {
 
 
   private val tempAddresses = Array[List[DataType]](List[IntN](), List[FltN](), List[StrL](), List[Bool]())
@@ -31,6 +31,17 @@ class Memory(intValues: Vector[Int],
   private val fltValAdrRange = 2500 until strValAdrRange.start
   private val intValAdrRange = 100 until fltValAdrRange.start
 
+  private var stackTrace = List[Int]()
+
+  def saveCurrentPos(line: Int): Unit = {
+    stackTrace = line :: stackTrace
+  }
+
+  def popLastPosition(): Int = {
+    val head = stackTrace.head
+    stackTrace = stackTrace.tail
+    head
+  }
 
   def saveTempInt(num: Int): Unit = tempAddresses(int) = IntN(num) :: tempAddresses(int)
 
@@ -42,9 +53,9 @@ class Memory(intValues: Vector[Int],
 
   def assign(varAddress: Int, valAddress: Int): Unit = {
     varAddress match {
-      case n if intVarAdrRange contains n => updateVariable(int, varAddress, valAddress)
-      case n if fltVarAdrRange contains n => updateVariable(flt, varAddress, valAddress)
-      case n if strVarAdrRange contains n => updateVariable(str, varAddress, valAddress)
+      case n if intVarAdrRange contains n  => updateVariable(int, varAddress, valAddress)
+      case n if fltVarAdrRange contains n  => updateVariable(flt, varAddress, valAddress)
+      case n if strVarAdrRange contains n  => updateVariable(str, varAddress, valAddress)
       case n if boolVarAdrRange contains n => updateVariable(bool, varAddress, valAddress)
       case n if tmpIntAdrRange contains n =>
         updateVariable(int, tempAddresses(int)(n).asInstanceOf[IntN].num, valAddress)
@@ -54,19 +65,12 @@ class Memory(intValues: Vector[Int],
 
   private def updateVariable(typ: Int, varAddress: Int, valAddress: Int) {
     val varAdrRange = typ match {
-      case `int` => intVarAdrRange
-      case `flt` => fltVarAdrRange
-      case `str` => strVarAdrRange
+      case `int`  => intVarAdrRange
+      case `flt`  => fltVarAdrRange
+      case `str`  => strVarAdrRange
       case `bool` => boolVarAdrRange
     }
     varAddresses(typ) = varAddresses(typ).updated(varAdrRange.indexOf(varAddress), value(valAddress))
-  }
-
-
-  def popTemp(typ: Int): DataType = {
-    val head = tempAddresses(typ).head
-    tempAddresses(typ) = tempAddresses(typ).tail
-    head
   }
 
   // TODO FIXME
@@ -84,7 +88,16 @@ class Memory(intValues: Vector[Int],
       case n if tmpFltAdrRange contains n  => popTemp(flt)
       case n if tmpStrAdrRange contains n  => popTemp(str)
       case n if tmpBoolAdrRange contains n => popTemp(bool)
-      case _ => sys.error("Fatal Error: Couldnt find value")
+      case _ => sys.error("Fatal Error: Couldnt find value with adr " + adr)
     }
   }
+
+  def popTemp(typ: Int): DataType = {
+    val head = tempAddresses(typ).head
+    tempAddresses(typ) = tempAddresses(typ).tail
+    head
+  }
+
+  override def toString: String = s"Memory:\n\t$intValues\n\t$floatValues\n\t$stringValues\n\t$boolValues\n\t" +
+    s"${varAddresses.foreach(println)}"
 }

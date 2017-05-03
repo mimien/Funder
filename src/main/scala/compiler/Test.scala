@@ -12,24 +12,23 @@ import syntax.Program
   * @author emiliocornejo
   *         created on 04/03/17
   */
-//val goto  = 1
+//val goto = 1
 //val asgmt = 2
-//val and   = 3
-//val or    = 4
-//val eq    = 5
-//val ne    = 6
-//val gt    = 7
-//val lt    = 8
-//val ge    = 9
-//val le    = 10
-//val sum   = 11
-//val sub   = 12
-//val mul   = 13
-//val div   = 14
-//val mod   = 14
-//val era   = 15
-//val ver   = 16
-//val adr   = 17
+//val and = 3
+//val or = 4
+//val eq = 5
+//val ne = 6
+//val gt = 7
+//val lt = 8
+//val ge = 9
+//val le = 10
+//val sum = 11
+//val sub = 12
+//val mul = 13
+//val div = 14
+//val mod = 15
+//val end = 16
+//val ver = 17
 //val gotof = 18
 //val gosub = 19
 //val param = 20
@@ -68,25 +67,23 @@ object Test {
         |
         |main
         |  var z: Float
-        |  matrix[4][20] mat: Int
         |  m = 23
-        |  mat[3 + 1][12] = (m + 1) * 2
         |  z = 4 - 10 + 4 * 4.2
         |  write(z)
-        |  if z > 20 then
+        |  if z > 10 then
         |    z = z + 1
         |    write((z + 2) / 10)
         |  else
         |    write("z " + "mal")
         |    write(z < 20)
-        |  return 0
+        |end
         |""".stripMargin
     val result = Lexer(code)
     println(result)
     val ast = Compiler(code)
     println(ast)
     val eval = ast match {
-      case Right(p@Program(_, _, _)) =>
+      case Right(p@Program(_, _, _, _)) =>
         val byteCode = Evaluator(p)
         val file = new File(args(0))
         val bw = new BufferedWriter(new FileWriter(file))

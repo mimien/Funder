@@ -23,14 +23,15 @@ object Evaluator {
     MEM.addQuadruple(-1, -1, -1, -1)
 
     // Add global variables table to the function directory
-    MEM.functionDirectory("global") = Memory.Fun(IntType, Seq(), createVarTable(MEM.VarTable(), program.vars))
+    MEM.functionDirectory("global") = Memory.Fun(IntType, Seq(), createVarTable(MEM.VarTable(), program.globalVars))
 
     // Add function variables tables to the function directory
     program.functions.foreach(f => addFunction(f.id, f.params, f.returnTyp, f.block))
-    MEM.updateQuadruple(0, ADR.goto, MEM.numberOfQuadruples, -1, -1)
+    MEM.updateQuadruple(0, ADR.goto, -1, -1, MEM.numberOfQuadruples)
 
     // Add main variables table to the function directory
-    addFunction("main", Seq(), IntType, program.main)
+    val mainBlock = Block(program.mainVars, program.mainStatements, IntN(0))
+    addFunction("main", Seq(), IntType, mainBlock, isNotMainBlock = false)
 
     println(MEM.functionDirectory)
     ADR.get + MEM.quadruplesToString
@@ -161,7 +162,7 @@ object Evaluator {
   def addStatementQuads(funName: String, statements: Seq[Statement]): Unit = {
 
     val varTable = MEM.functionDirectory(funName).variables
-    
+
     statements.foreach {
       case Assignment(name, expr) =>
         val variable = varTable get name
@@ -173,24 +174,19 @@ object Evaluator {
         def varAssignment(variable: MEM.Var) {
           val evaluatedExpr = addExprQuads(varTable, expr)
           if (evaluatedExpr.typ == variable.typ) {
-            val tempAdr = evaluatedExpr.address match {
+            evaluatedExpr.address match {
               case ADR.rdInt =>
                 val tempInt = ADR.addTempInt()
                 MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, tempInt, variable.address)
-                EvalExpr(tempInt, IntType)
               case ADR.rdFlt =>
                 val tempFloat = ADR.addTempFloat()
                 MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, tempFloat, variable.address)
-                EvalExpr(tempFloat, FloatType)
               case ADR.rdStr =>
                 val tempStr = ADR.addTempString()
                 MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, tempStr, variable.address)
-                EvalExpr(tempStr, StringType)
               case _ =>
                 MEM.addQuadruple(ADR.asgmt, evaluatedExpr.address, -1, variable.address)
-                evaluatedExpr
             }
-            ADR.assignValToVarAdr(evaluatedExpr, variable.address)
           }
           else sys.error("Error: Expression assignnment of variable " + name + "doesn't match expected type")
         }
@@ -236,7 +232,7 @@ object Evaluator {
           }
           else sys.error("Error: Expression assignnment of variable " + name + " doesn't match expected type")
         }
-        
+
       case IfThen(expr, block) =>
         val evaluatedExpr = addExprQuads(varTable, expr)
         if (evaluatedExpr.typ == BoolType) {
@@ -272,20 +268,20 @@ object Evaluator {
         }
         else sys.error("ERROR: While condition must contain a boolean expression")
 
-      case FunctionCall(name, params) =>
+      case FunctionCall(name, paramsExpr) =>
         val function = MEM.functionDirectory get name
         if (function isDefined) {
-          val paramsTypes = function.get.paramsTypes
-          if (params.length == paramsTypes.length) {
-            MEM.addQuadruple(ADR.era, -1 /*name*/, -1, -1)
-            for (i <- params.indices) {
-              val evaluatedExpr = addExprQuads(varTable, params(i))
-              if (evaluatedExpr.typ == paramsTypes(i)) {
-                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, i + 1)
+          val paramsNames = function.get.paramsNames
+          if (paramsExpr.length == paramsNames.length) {
+            for (i <- paramsExpr.indices) {
+              val variable = function.get.variables(paramsNames(i))
+              val evaluatedExpr = addExprQuads(varTable, paramsExpr(i))
+              if (evaluatedExpr.typ == variable.typ) {
+                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, variable.address)
               }
               else sys.error("ERROR: Type mismatch on function call " + name)
             }
-            MEM.addQuadruple(ADR.gosub, function.get.firstLine, -1, -1)
+            MEM.addQuadruple(ADR.gosub, -1, -1, function.get.firstLine)
           }
           else sys.error("ERROR: Incorrect number of parameters in function call " + name)
         }
@@ -302,27 +298,30 @@ object Evaluator {
   /**
     * Link function data to the mutable function directory and evaluate block statements for making quadruples
     *
-    * @param  name    name of the function
-    * @param  params  parameters of the function
-    * @param  typ     return type of the function
-    * @param  block   block of the function
+    * @param  name   name of the function
+    * @param  params parameters of the function
+    * @param  typ    return type of the function
+    * @param  block  block of the function
     */
-  def addFunction(name: String, params: Seq[Vars], typ: Type, block: Block) {
-    block match {
-      case Block(vars, statements, retrn) =>
+  def addFunction(name: String, params: Seq[Vars], typ: Type, block: Block, isNotMainBlock: Boolean = true) {
+    block match { case Block(vars, statements, retrn) =>
         if (MEM.functionDirectory contains name) sys.error(s"Error: Function $name already defined")
         else {
-          val funParamsTypes = params.map(_.getType)
+          val funParamsNames = params.map(_.getName)
           val funVarTable = createVarTable(createVarTable(MEM.VarTable(), params), vars)
-          MEM.functionDirectory(name) = MEM.Fun(typ, funParamsTypes, funVarTable, statements, MEM.numberOfQuadruples)
+          MEM.functionDirectory(name) = MEM.Fun(typ, funParamsNames, funVarTable, statements, MEM.numberOfQuadruples)
 
           // create statement quadruples
           addStatementQuads(name, statements)
 
-          // create function return quadruple
-          val returnExpr = addExprQuads(funVarTable, retrn)
-          if (returnExpr.typ == typ) MEM.addQuadruple(ADR.retrn, returnExpr.address, -1, -1)
-          else sys.error("Error: return expression of type " + returnExpr.typ + " doesn't match function type")
+
+          // create function return quadruple if it is not main block and a end quadruple if it is
+          if (isNotMainBlock) {
+            val returnExpr = addExprQuads(funVarTable, retrn)
+            if (returnExpr.typ == typ) MEM.addQuadruple(ADR.retrn, returnExpr.address, -1, -1)
+            else sys.error("Error: return expression of type " + returnExpr.typ + " doesn't match function type")
+          }
+          else MEM.addQuadruple(ADR.end, -1, -1, -1)
         }
     }
   }
@@ -330,21 +329,20 @@ object Evaluator {
   /**
     * Adds variables to the variable table
     *
-    * @param  table   The variable table that belongs a function scope
-    * @param  vars    variables of type Variable which belongs a function scope
-    * @return   The variable table with the variables added
+    * @param  table The variable table that belongs a function scope
+    * @param  vars  variables of type Variable which belongs a function scope
+    * @return The variable table with the variables added
     */
   private def createVarTable(table: VarTable, vars: Seq[Vars]): VarTable = {
     if (vars.isEmpty) table
     else {
       vars.head match {
-        // TODO Change contains name for isDefined implementation
         case Variable(name, typ) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else createVarTable(table + (name -> MEM.Var(typ, 1, 1)), vars.tail)
+          else createVarTable(table + (name -> MEM.Var(typ)), vars.tail)
         case Array(name, typ, size) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
-          else createVarTable(table + (name -> MEM.Var(typ, size, 1)), vars.tail)
+          else createVarTable(table + (name -> MEM.Var(typ, size)), vars.tail)
         case Matrix(name, typ, row, col) =>
           if (table contains name) sys.error(s"Error: Variable $name already defined")
           else createVarTable(table + (name -> MEM.Var(typ, row, col)), vars.tail)

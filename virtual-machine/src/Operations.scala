@@ -173,23 +173,23 @@ object Operations {
   }
 
   object Addresses {
-    val goto = 1
+    val goto  = 1
     val asgmt = 2
-    val and = 3
-    val or = 4
-    val eq = 5
-    val ne = 6
-    val gt = 7
-    val lt = 8
-    val ge = 9
-    val le = 10
-    val sum = 11
-    val sub = 12
-    val mul = 13
-    val div = 14
-    val mod = 15
-    val era = 16
-    val ver = 17
+    val and   = 3
+    val or    = 4
+    val eq    = 5
+    val ne    = 6
+    val gt    = 7
+    val lt    = 8
+    val ge    = 9
+    val le    = 10
+    val sum   = 11
+    val sub   = 12
+    val mul   = 13
+    val div   = 14
+    val mod   = 15
+    val end   = 16
+    val ver   = 17
     val gotof = 18
     val gosub = 19
     val param = 20

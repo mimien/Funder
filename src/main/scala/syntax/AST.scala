@@ -11,7 +11,8 @@ import scala.util.parsing.input.Positional
   */
 sealed trait AST extends Positional
 
-case class Program(vars: Seq[Vars], functions: Seq[Function], main: Block) extends AST
+case class Program(globalVars: Seq[Vars], functions: Seq[Function], mainVars: Seq[Vars],
+                   mainStatements: Seq[Statement]) extends AST
 
 case class Function(id: String, params: Seq[Vars], returnTyp: Type, block: Block) extends AST
 
@@ -21,19 +22,19 @@ case class ConditionBlock(statements: Seq[Statement]) extends AST
 
 
 sealed trait Vars extends Positional {
-  def getType: Type
+  def getName: String
 }
 
 case class Variable(name: String, typ: Type) extends Vars {
-  override def getType: Type = typ
+  override def getName: String = name
 }
 
 case class Array(name: String, typ: Type, size: Int) extends Vars {
-  override def getType: Type = typ
+  override def getName: String = name
 }
 
 case class Matrix(name: String, typ: Type, numOfRows: Int, numOfColumns: Int) extends Vars {
-  override def getType: Type = typ
+  override def getName: String = name
 }
 
 

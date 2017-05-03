@@ -153,3 +153,5 @@ case class WRITE() extends Token
 case class DRAW() extends Token
 
 case class RETURN() extends Token
+
+case class END() extends Token

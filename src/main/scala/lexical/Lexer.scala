@@ -187,6 +187,8 @@ object Lexer extends RegexParsers {
 
   def retrn: Parser[RETURN] = positioned { "return" ^^ (_ => RETURN()) }
 
+  def end: Parser[END] = positioned { "end" ^^ (_ => END()) }
+
   def tokens: Parser[List[Token]] = {
     phrase(rep1(valString | valFloat | valInt | valBool | int | float | bool | string | line | arc | oval
       | rectangle | plus | minus | times | divides | mod | equals | notEquals | assign | greaterEquals
@@ -194,7 +196,7 @@ object Lexer extends RegexParsers {
       | colon | variable | array | matrix | function | ifCondition | then | whileLoop | doLoop | elseCondition
       | and | or /*| black | darkGray | lightGray*//*| blue | green | yellow | red | orange */| main /*|
       createOval | createRectangle | createArc | createLine | moveX | moveY | setStroke | scale | setColor | draw*/
-      | write | readString | readInt |readFloat | retrn |  indentation | identifier)) ^^ { rawTokens =>
+      | write | readString | readInt |readFloat | retrn | end |  indentation | identifier)) ^^ { rawTokens =>
       processIndentations(rawTokens)
     }
   }

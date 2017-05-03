@@ -51,7 +51,7 @@ object Memory {
     else sys.error("Error: Index must be integer type")
   }*/
 
-  case class Var(typ: Type, rows: Int, columns: Int) {
+  case class Var(typ: Type, rows: Int = 1, columns: Int = 1) {
     val address: Int = Addresses.newVariable(typ, rows, columns)
   }
 
@@ -61,7 +61,7 @@ object Memory {
     override def toString: String = s"$operation;$leftOpr;$rightOpr;$result"
   }
 
-  case class Fun(typ: Type, paramsTypes: Seq[Type], variables: VarTable, statements: Seq[Statement] = Seq(),
+  case class Fun(typ: Type, paramsNames: Seq[String], variables: VarTable, statements: Seq[Statement] = Seq(),
                  firstLine: Int = 0)
 
   object Addresses {
@@ -81,7 +81,7 @@ object Memory {
     val mul   = 13
     val div   = 14
     val mod   = 15
-    val era   = 16
+    val end   = 16
     val ver   = 17
     val gotof = 18
     val gosub = 19
@@ -109,10 +109,6 @@ object Memory {
     private val fltValAdr = Array.ofDim[Float](fltValAdrRange.length)
     private val strValAdr = Array.ofDim[String](strValAdrRange.length)
     private val boolValAdr = Array.ofDim[Boolean](boolValAdrRange.length)
-    private val intVarAdr = Array.ofDim[Int](intVarAdrRange.length)
-    private val fltVarAdr = Array.ofDim[Int](fltVarAdrRange.length)
-    private val strVarAdr = Array.ofDim[Int](strVarAdrRange.length)
-    private val boolVarAdr = Array.ofDim[Int](boolVarAdrRange.length)
 
     private var intValInd  = 0
     private var fltValInd  = 0
@@ -132,10 +128,10 @@ object Memory {
         fltValAdr.take(fltValInd).mkString(";") + "\n" +
         strValAdr.take(strValInd).mkString(";") + "\n" +
         boolValAdr.take(boolValInd).mkString(";") + "\n" +
-        intVarAdr.take(intVarInd).mkString(";") + "\n" +
-        fltVarAdr.take(fltVarInd).mkString(";") + "\n" +
-        strVarAdr.take(strVarInd).mkString(";") + "\n" +
-        boolVarAdr.take(boolVarInd).mkString(";") + "\n"
+        intVarInd + "\n" +
+        fltVarInd + "\n" +
+        strVarInd + "\n" +
+        boolVarInd + "\n"
     }
 
     def newVariable(typ: Type, rows: Int, columns: Int): Int = {
@@ -224,16 +220,6 @@ object Memory {
       val address = boolValAdrRange(boolValInd)
       boolValInd += 1
       address
-    }
-
-    def assignValToVarAdr(expr: EvalExpr, address: Int) {
-      expr.typ match {
-        case IntType => intVarAdr.update(address - intVarAdrRange.start,  expr.address)
-        case FloatType => fltVarAdr.update(address - fltVarAdrRange.start, expr.address)
-        case StringType => strVarAdr.update(address - strVarAdrRange.start, expr.address)
-        case BoolType => boolVarAdr.update(address - boolVarAdrRange.start, expr.address)
-        case _ => sys.error("Type not supported yet")
-      }
     }
   }
 }
