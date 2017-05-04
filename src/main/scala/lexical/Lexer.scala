@@ -6,9 +6,6 @@ import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
 /**
-  * Class description
-  *
-  * @author emiliocornejo
   *         created on 04/03/17
   */
 object Lexer extends RegexParsers {

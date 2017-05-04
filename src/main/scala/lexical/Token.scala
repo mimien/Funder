@@ -113,6 +113,7 @@ case class RED() extends Token
 case class ORANGE() extends Token
 
 case class MAIN() extends Token
+
 case class READ_STRING() extends Token
 
 case class READ_INT() extends Token

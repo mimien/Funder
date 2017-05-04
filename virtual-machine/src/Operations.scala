@@ -193,11 +193,16 @@ object Operations {
     val gotof = 18
     val gosub = 19
     val param = 20
-    val rdInt = 21
-    val rdFlt = 22
-    val rdStr = 23
-    val write = 24
-    val retrn = 25
-    val end   = 26
+    val write = 21
+    val retrn = 22
+    val end   = 23
+
+    val rdInt = 50
+    val rdFlt = 51
+    val rdStr = 52
+    val rect  = 53
+    val oval  = 54
+    val line  = 55
+    val arc   = 56
   }
 }

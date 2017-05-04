@@ -49,13 +49,24 @@ object Parser extends Parsers {
     assignment | ifThen | whileDo | functions | functionCall
   }
 
+  def color: Parser[Color] = {
+    BLACK() ^^^ Black |
+    DARK_GRAY() ^^^ DarkGray |
+    LIGHT_GRAY() ^^^ LightGray |
+    YELLOW() ^^^ Yellow |
+    BLUE() ^^^ Blue |
+    GREEN() ^^^ Green |
+    RED() ^^^ Red |
+    ORANGE() ^^^ Orange
+  }
+
   def draw: Parser[Statement] = positioned {
     (DRAW_RECTANGLE() | DRAW_OVAL() | DRAW_LINE() | DRAW_ARC()) ~ (LP() ~> expression <~ COMMA()) ~
-      (expression <~ COMMA()) ~ (expression <~ COMMA()) ~ (expression <~ RP()) ^^ {
-      case DRAW_RECTANGLE() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawRectangle(exp1, exp2, exp3, exp4)
-      case DRAW_OVAL() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawOval(exp1, exp2, exp3, exp4)
-      case DRAW_LINE() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawRectangle(exp1, exp2, exp3, exp4)
-      case DRAW_ARC() ~ exp1 ~ exp2 ~ exp3 ~ exp4 => DrawRectangle(exp1, exp2, exp3, exp4)
+      (expression <~ COMMA()) ~ (expression <~ COMMA()) ~ (expression <~ COMMA()) ~ (color <~ RP()) ^^ {
+      case DRAW_RECTANGLE() ~ exp1 ~ exp2 ~ exp3 ~ exp4 ~ colr => DrawRectangle(exp1, exp2, exp3, exp4, colr)
+      case DRAW_OVAL() ~ exp1 ~ exp2 ~ exp3 ~ exp4 ~ colr => DrawOval(exp1, exp2, exp3, exp4, colr)
+      case DRAW_LINE() ~ exp1 ~ exp2 ~ exp3 ~ exp4 ~ colr => DrawLine(exp1, exp2, exp3, exp4, colr)
+      case DRAW_ARC() ~ exp1 ~ exp2 ~ exp3 ~ exp4 ~ colr => DrawArc(exp1, exp2, exp3, exp4, colr)
     }
   }
   def functions: Parser[Statement] = positioned {

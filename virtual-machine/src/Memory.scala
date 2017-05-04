@@ -1,4 +1,5 @@
-import scala.collection.mutable
+import scalafx.scene.paint.Color
+import scalafx.scene.shape.{Ellipse, Line, Rectangle, Shape}
 
 /**
   * Class description
@@ -30,6 +31,67 @@ class Memory(intValues: Vector[Int],
   private val strValAdrRange = 5000 until boolValAdrRange.start
   private val fltValAdrRange = 2500 until strValAdrRange.start
   private val intValAdrRange = 100 until fltValAdrRange.start
+  private var shapeDataCount = 0
+  private val shapeDataArray = Array.ofDim[Float](4)
+  private var shapeList = List[Shape]()
+
+  private def color(num: Int): Color = {
+    num match {
+      case 0 => Color.Black
+      case 1 => Color.DarkGrey
+      case 2 => Color.LightGray
+      case 3 => Color.Blue
+      case 4 => Color.Green
+      case 5 => Color.Yellow
+      case 6 => Color.Red
+      case 7 => Color.Orange
+    }
+  }
+
+  def addShapeParam(dataType: DataType, shape: Int): Unit = {
+    dataType match {
+      case IntN(num) if shapeDataCount == 4 =>
+        val ADR = Operations.Addresses
+        shapeDataCount = 0
+        shape match {
+          case ADR.rect =>
+            val rectangle = new Rectangle {
+              x = shapeDataArray(0)
+              y = shapeDataArray(1)
+              width = shapeDataArray(2)
+              height = shapeDataArray(3)
+              fill = color(num)
+            }
+            shapeList = rectangle :: shapeList
+          case ADR.line =>
+            val line = new Line {
+              endX = shapeDataArray(0)
+              endY = shapeDataArray(1)
+              startX = shapeDataArray(2)
+              startY = shapeDataArray(3)
+            }
+            line.setStroke(color(num))
+            shapeList = line :: shapeList
+          case ADR.oval =>
+            val oval = new Ellipse {
+              radiusX = shapeDataArray(0)
+              radiusY = shapeDataArray(1)
+              centerX = shapeDataArray(2)
+              centerY = shapeDataArray(3)
+              fill = color(num)
+            }
+            shapeList = oval :: shapeList
+        }
+      case FltN(num) =>
+        shapeDataArray(shapeDataCount) = num
+        shapeDataCount += 1
+      case _ => sys.error("Error: Shape parameters must be float value")
+    }
+  }
+
+  def displayDrawFrame(): Unit = {
+    new DrawFrame(shapeList).main(Array())
+  }
 
   private var stackTrace = List[Int]()
 
@@ -81,7 +143,7 @@ class Memory(intValues: Vector[Int],
     varAddresses(typ) = varAddresses(typ).updated(varAdrRange.indexOf(varAddress), value(valAddress))
   }
 
-  def value(adr: Int): DataType = {
+  def value(adr: Int, withoutPop: Boolean = false): DataType = {
     adr match {
       case n if intValAdrRange contains n  => IntN(intValues(intValAdrRange.indexOf(adr)))
       case n if fltValAdrRange contains n  => FltN(floatValues(fltValAdrRange.indexOf(adr)))
@@ -91,10 +153,10 @@ class Memory(intValues: Vector[Int],
       case n if fltVarAdrRange contains n  => varAddresses(flt)(fltVarAdrRange.indexOf(adr))
       case n if strVarAdrRange contains n  => varAddresses(str)(strVarAdrRange.indexOf(adr))
       case n if boolVarAdrRange contains n => varAddresses(bool)(boolVarAdrRange.indexOf(adr))
-      case n if tmpIntAdrRange contains n  => popTemp(int)
-      case n if tmpFltAdrRange contains n  => popTemp(flt)
-      case n if tmpStrAdrRange contains n  => popTemp(str)
-      case n if tmpBoolAdrRange contains n => popTemp(bool)
+      case n if tmpIntAdrRange contains n  => if (withoutPop) tempAddresses(int).head else popTemp(int)
+      case n if tmpFltAdrRange contains n  => if (withoutPop) tempAddresses(flt).head else popTemp(flt)
+      case n if tmpStrAdrRange contains n  => if (withoutPop) tempAddresses(str).head else popTemp(str)
+      case n if tmpBoolAdrRange contains n => if (withoutPop) tempAddresses(bool).head else popTemp(bool)
       case _ => sys.error("Fatal Error: Couldnt find value with adr " + adr)
     }
   }

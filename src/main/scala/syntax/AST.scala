@@ -49,23 +49,41 @@ case object BoolType extends Type
 case object StringType extends Type
 
 
-sealed trait Color extends Positional
+sealed trait Color extends Positional {
+  def id: Int
+}
 
-case object Black extends Color
+case object Black extends Color {
+  override def id: Int = 0
+}
 
-case object DarkGray extends Color
+case object DarkGray extends Color {
+  override def id: Int = 1
+}
 
-case object LightGray extends Color
+case object LightGray extends Color {
+  override def id: Int = 2
+}
 
-case object Blue extends Color
+case object Blue extends Color {
+  override def id: Int = 3
+}
 
-case object Green extends Color
+case object Green extends Color {
+  override def id: Int = 4
+}
 
-case object Yellow extends Color
+case object Yellow extends Color {
+  override def id: Int = 5
+}
 
-case object Red extends Color
+case object Red extends Color {
+  override def id: Int = 6
+}
 
-case object Orange extends Color
+case object Orange extends Color {
+  override def id: Int = 7
+}
 
 
 sealed trait Statement extends Positional
@@ -86,13 +104,13 @@ case class FunctionCall(id: String, params: Seq[Expression]) extends Statement
 
 case class Write(expr: Expression) extends Statement
 
-case class DrawRectangle(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+case class DrawRectangle(x: Expression, y: Expression, width: Expression, height: Expression, color: Color) extends Statement
 
-case class DrawLine(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+case class DrawLine(x: Expression, y: Expression, width: Expression, height: Expression, color: Color) extends Statement
 
-case class DrawOval(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+case class DrawOval(x: Expression, y: Expression, width: Expression, height: Expression, color: Color) extends Statement
 
-case class DrawArc(x: Expression, y: Expression, width: Expression, height: Expression) extends Statement
+case class DrawArc(x: Expression, y: Expression, width: Expression, height: Expression, color: Color) extends Statement
 
 
 sealed trait Expression extends Positional

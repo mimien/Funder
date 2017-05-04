@@ -1,18 +1,12 @@
 package semantics
 
-import lexical.Lexer
-import semantics.Memory.{EvalExpr, FunDirectory, VarTable}
+import semantics.Memory.{EvalExpr, VarTable}
 import syntax._
 
-import scala.collection.immutable.HashMap
-import scala.collection.mutable
-import scala.io.StdIn
 import scala.language.postfixOps
 
 /**
-  * Class description
   *
-  * @author emiliocornejo
   *         created on 10/03/17
   */
 object Evaluator {
@@ -334,7 +328,7 @@ object Evaluator {
               val variable = function.get.variables(paramsNames(i))
               val evaluatedExpr = addExprQuads(varTable, params(i))
               if (evaluatedExpr.typ == variable.typ) {
-                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, variable .address)
+                MEM.addQuadruple(ADR.param, evaluatedExpr.address, -1, variable.address)
               }
               else sys.error("ERROR: Type mismatch on function call " + name)
             }
@@ -347,6 +341,39 @@ object Evaluator {
       case Write(expr) =>
         val evaluatedExpr = addExprQuads(varTable, expr)
         MEM.addQuadruple(ADR.write, evaluatedExpr.address, -1, -1)
+
+      case DrawRectangle(x, y, width, height, color) =>
+        val evaluatedExprX = addExprQuads(varTable, x)
+        MEM.addQuadruple(ADR.param, ADR.rect, evaluatedExprX.address, -1)
+        val evaluatedExprY = addExprQuads(varTable, y)
+        MEM.addQuadruple(ADR.param, ADR.rect, evaluatedExprY.address, -1)
+        val evaluatedExprWidth = addExprQuads(varTable, width)
+        MEM.addQuadruple(ADR.param, ADR.rect, evaluatedExprWidth.address, -1)
+        val evaluatedExprHeight = addExprQuads(varTable, height)
+        MEM.addQuadruple(ADR.param, ADR.rect, evaluatedExprHeight.address, -1)
+        MEM.addQuadruple(ADR.param, ADR.rect, ADR.addIntVal(color.id), -1)
+
+      case DrawOval(x, y, width, height, color) =>
+        val evaluatedExprX = addExprQuads(varTable, x)
+        MEM.addQuadruple(ADR.param, ADR.oval, evaluatedExprX.address, -1)
+        val evaluatedExprY = addExprQuads(varTable, y)
+        MEM.addQuadruple(ADR.param, ADR.oval, evaluatedExprY.address, -1)
+        val evaluatedExprWidth = addExprQuads(varTable, width)
+        MEM.addQuadruple(ADR.param, ADR.oval, evaluatedExprWidth.address, -1)
+        val evaluatedExprHeight = addExprQuads(varTable, height)
+        MEM.addQuadruple(ADR.param, ADR.oval, evaluatedExprHeight.address, -1)
+        MEM.addQuadruple(ADR.param, ADR.oval, ADR.addIntVal(color.id), -1)
+
+      case DrawLine(x, y, width, height, color) =>
+        val evaluatedExprX = addExprQuads(varTable, x)
+        MEM.addQuadruple(ADR.param, ADR.line, evaluatedExprX.address, -1)
+        val evaluatedExprY = addExprQuads(varTable, y)
+        MEM.addQuadruple(ADR.param, ADR.line, evaluatedExprY.address, -1)
+        val evaluatedExprWidth = addExprQuads(varTable, width)
+        MEM.addQuadruple(ADR.param, ADR.line, evaluatedExprWidth.address, -1)
+        val evaluatedExprHeight = addExprQuads(varTable, height)
+        MEM.addQuadruple(ADR.param, ADR.line, evaluatedExprHeight.address, -1)
+        MEM.addQuadruple(ADR.param, ADR.line, ADR.addIntVal(color.id), -1)
 
       case _ => sys.error("ERROR STATEMENT")
     }

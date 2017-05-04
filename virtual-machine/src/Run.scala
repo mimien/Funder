@@ -1,6 +1,7 @@
 import java.io.{FileNotFoundException, IOException}
 
 import scala.io.Source
+import scala.language.postfixOps
 import scala.util.Try
 
 /**
